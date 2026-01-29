@@ -1,6 +1,7 @@
 """Main application entry point for the AI Agent Boilerplate."""
 
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 from agent.graph import app
@@ -33,7 +34,7 @@ def main():
             "tactical_plan": [],
             "history": [],
             "active_skill_context": "",
-            "last_verification_status": ""
+            "last_verification_status": "",
         }
 
         print("Starting agent workflow...")
@@ -95,6 +96,7 @@ def main():
     except Exception as e:
         print(f"Error during execution: {str(e)}")
         import traceback
+
         traceback.print_exc()
 
     print("\nDemo completed!")

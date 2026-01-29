@@ -12,15 +12,15 @@ def process_data_v1(data, config):  # Too many parameters, complex logic
     """Version 1 - poorly designed function."""
     result = []
     for item in data:
-        if config.get('filter_enabled', False):
-            if config.get('min_value', 0) <= item <= config.get('max_value', 100):
-                if config.get('transform_enabled', False):
-                    if config.get('transform_type') == 'square':
-                        result.append(item ** 2)
-                    elif config.get('transform_type') == 'cube':
-                        result.append(item ** 3)
-                    elif config.get('transform_type') == 'sqrt':
-                        result.append(item ** 0.5)
+        if config.get("filter_enabled", False):
+            if config.get("min_value", 0) <= item <= config.get("max_value", 100):
+                if config.get("transform_enabled", False):
+                    if config.get("transform_type") == "square":
+                        result.append(item**2)
+                    elif config.get("transform_type") == "cube":
+                        result.append(item**3)
+                    elif config.get("transform_type") == "sqrt":
+                        result.append(item**0.5)
                     else:
                         result.append(item)
                 else:
@@ -36,10 +36,10 @@ def process_data_v2(data, filter_config=None, transform_config=None):
 
     This version is more maintainable with smaller functions.
     """
-    if filter_config and filter_config.get('enabled', False):
+    if filter_config and filter_config.get("enabled", False):
         data = _apply_filter(data, filter_config)
 
-    if transform_config and transform_config.get('enabled', False):
+    if transform_config and transform_config.get("enabled", False):
         data = _apply_transform(data, transform_config)
 
     return data
@@ -47,21 +47,21 @@ def process_data_v2(data, filter_config=None, transform_config=None):
 
 def _apply_filter(data, config):
     """Apply filtering logic."""
-    min_val = config.get('min_value', 0)
-    max_val = config.get('max_value', 100)
+    min_val = config.get("min_value", 0)
+    max_val = config.get("max_value", 100)
     return [x for x in data if min_val <= x <= max_val]
 
 
 def _apply_transform(data, config):
     """Apply transformation logic."""
-    transform_type = config.get('type', 'none')
+    transform_type = config.get("type", "none")
 
-    if transform_type == 'square':
-        return [x ** 2 for x in data]
-    elif transform_type == 'cube':
-        return [x ** 3 for x in data]
-    elif transform_type == 'sqrt':
-        return [x ** 0.5 for x in data]
+    if transform_type == "square":
+        return [x**2 for x in data]
+    elif transform_type == "cube":
+        return [x**3 for x in data]
+    elif transform_type == "sqrt":
+        return [x**0.5 for x in data]
     else:
         return data
 
@@ -106,7 +106,7 @@ def very_long_function_that_does_many_things(a, b, c, d, e, f, g, h, i, j):
     print(f"Calculation completed: {final_result}")
 
     # File I/O (should definitely be separate)
-    with open('calculation_log.txt', 'a') as f:
+    with open("calculation_log.txt", "a") as f:
         f.write(f"{final_result}\n")
 
     # Return result

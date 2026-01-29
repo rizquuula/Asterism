@@ -1,6 +1,7 @@
 """Filesystem MCP Server - Provides file system operations."""
 
 from pathlib import Path
+
 from fastmcp import FastMCP
 
 # Initialize FastMCP server
@@ -62,7 +63,7 @@ def read_file(file_path: str) -> str:
         if not path.is_file():
             return f"Error: {file_path} is not a file"
 
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, encoding="utf-8") as f:
             content = f.read()
 
         return content
@@ -93,7 +94,7 @@ def write_file(file_path: str, content: str) -> str:
         # Create parent directories if they don't exist
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content)
 
         return f"Successfully wrote {len(content)} characters to {file_path}"
@@ -129,7 +130,7 @@ def get_file_info(file_path: str) -> dict:
             "is_file": path.is_file(),
             "is_directory": path.is_dir(),
             "modified": stat.st_mtime,
-            "exists": True
+            "exists": True,
         }
 
     except Exception as e:
@@ -139,4 +140,5 @@ def get_file_info(file_path: str) -> dict:
 if __name__ == "__main__":
     # Run the MCP server
     import mcp.server.stdio
+
     mcp.server.stdio.run_server(app.to_server())

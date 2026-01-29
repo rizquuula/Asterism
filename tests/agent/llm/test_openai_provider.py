@@ -22,7 +22,7 @@ def test_invoke_with_parameters(openai_provider: BaseLLMProvider):
     response = openai_provider.invoke(
         prompt,
         temperature=0.1,  # Low temperature for consistent output
-        max_tokens=50
+        max_tokens=50,
     )
 
     assert isinstance(response, str)
@@ -49,8 +49,8 @@ def test_invoke_structured_basic(
     response = openai_provider.invoke_structured(test_structured_prompt, simple_schema)
 
     assert isinstance(response, simple_schema)
-    assert hasattr(response, 'answer')
-    assert hasattr(response, 'confidence')
+    assert hasattr(response, "answer")
+    assert hasattr(response, "confidence")
     assert isinstance(response.answer, str)
     assert isinstance(response.confidence, float)
     # Should contain answer to 2+2
@@ -70,11 +70,11 @@ def test_invoke_structured_complex_schema(
     response = openai_provider.invoke_structured(prompt, complex_schema)
 
     assert isinstance(response, complex_schema)
-    assert hasattr(response, 'question')
-    assert hasattr(response, 'answer')
-    assert hasattr(response, 'reasoning')
-    assert hasattr(response, 'confidence')
-    assert hasattr(response, 'tags')
+    assert hasattr(response, "question")
+    assert hasattr(response, "answer")
+    assert hasattr(response, "reasoning")
+    assert hasattr(response, "confidence")
+    assert hasattr(response, "tags")
 
     assert isinstance(response.question, str)
     assert isinstance(response.answer, str)
@@ -96,6 +96,7 @@ def test_invoke_structured_error_handling():
     provider = OpenAIProvider(model="gpt-3.5-turbo", api_key="invalid-key")
 
     from pydantic import BaseModel
+
     class TestSchema(BaseModel):
         result: str
 
@@ -110,9 +111,8 @@ def test_invoke_structured_with_kwargs(openai_provider: BaseLLMProvider, simple_
         prompt,
         simple_schema,
         temperature=0.0,  # Deterministic output
-        max_tokens=100
+        max_tokens=100,
     )
 
     assert isinstance(response, simple_schema)
     assert "8" in response.answer or "eight" in response.answer.lower()
-

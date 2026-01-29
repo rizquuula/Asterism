@@ -37,12 +37,7 @@ class OpenAIProvider(BaseLLMProvider):
             raise ValueError("OpenAI API key must be provided or set in OPENAI_API_KEY environment variable")
 
         # Initialize LangChain OpenAI client
-        self.client = ChatOpenAI(
-            model=model,
-            base_url=self._base_url,
-            api_key=self._api_key,
-            **kwargs
-        )
+        self.client = ChatOpenAI(model=model, base_url=self._base_url, api_key=self._api_key, **kwargs)
 
     def invoke(self, prompt: str, **kwargs) -> str:
         """Invoke OpenAI LLM with a text prompt."""
@@ -62,7 +57,7 @@ class OpenAIProvider(BaseLLMProvider):
             template = PromptTemplate(
                 template="{prompt}\n\n{format_instructions}",
                 input_variables=["prompt"],
-                partial_variables={"format_instructions": parser.get_format_instructions()}
+                partial_variables={"format_instructions": parser.get_format_instructions()},
             )
 
             # Create chain

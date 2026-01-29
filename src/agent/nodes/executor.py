@@ -1,14 +1,12 @@
 """Executor node: MCP tool execution loop."""
 
-import os
-import subprocess
-import json
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
+
 from agent.state import AgentState
 
 
-def execute_mcp_tool(server_name: str, tool_name: str, **kwargs) -> Dict[str, Any]:
+def execute_mcp_tool(server_name: str, tool_name: str, **kwargs) -> dict[str, Any]:
     """Execute an MCP tool by calling the corresponding server."""
     try:
         # For now, we'll simulate MCP tool execution
@@ -19,21 +17,13 @@ def execute_mcp_tool(server_name: str, tool_name: str, **kwargs) -> Dict[str, An
         elif server_name == "code_parser":
             return execute_code_parser_tool(tool_name, **kwargs)
         else:
-            return {
-                "success": False,
-                "error": f"Unknown MCP server: {server_name}",
-                "result": None
-            }
+            return {"success": False, "error": f"Unknown MCP server: {server_name}", "result": None}
 
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "result": None
-        }
+        return {"success": False, "error": str(e), "result": None}
 
 
-def execute_filesystem_tool(tool_name: str, **kwargs) -> Dict[str, Any]:
+def execute_filesystem_tool(tool_name: str, **kwargs) -> dict[str, Any]:
     """Execute filesystem-related tools."""
     try:
         if tool_name == "list_files":
@@ -48,11 +38,7 @@ def execute_filesystem_tool(tool_name: str, **kwargs) -> Dict[str, Any]:
                 files = list(path.iterdir())
 
             file_names = [f.name for f in files if f.is_file()]
-            return {
-                "success": True,
-                "result": file_names,
-                "tool": "filesystem:list_files"
-            }
+            return {"success": True, "result": file_names, "tool": "filesystem:list_files"}
 
         elif tool_name == "read_file":
             file_path = kwargs.get("path", "")
@@ -63,15 +49,10 @@ def execute_filesystem_tool(tool_name: str, **kwargs) -> Dict[str, Any]:
             if not path.exists():
                 return {"success": False, "error": f"File not found: {file_path}", "result": None}
 
-            with open(path, 'r') as f:
+            with open(path) as f:
                 content = f.read()
 
-            return {
-                "success": True,
-                "result": content,
-                "tool": "filesystem:read_file",
-                "file_path": file_path
-            }
+            return {"success": True, "result": content, "tool": "filesystem:read_file", "file_path": file_path}
 
         elif tool_name == "write_file":
             file_path = kwargs.get("path", "")
@@ -83,14 +64,14 @@ def execute_filesystem_tool(tool_name: str, **kwargs) -> Dict[str, Any]:
             path = Path(file_path)
             path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(path, 'w') as f:
+            with open(path, "w") as f:
                 f.write(content)
 
             return {
                 "success": True,
                 "result": f"File written: {file_path}",
                 "tool": "filesystem:write_file",
-                "file_path": file_path
+                "file_path": file_path,
             }
 
         else:
@@ -100,7 +81,7 @@ def execute_filesystem_tool(tool_name: str, **kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e), "result": None}
 
 
-def execute_code_parser_tool(tool_name: str, **kwargs) -> Dict[str, Any]:
+def execute_code_parser_tool(tool_name: str, **kwargs) -> dict[str, Any]:
     """Execute code parsing tools."""
     try:
         if tool_name == "analyze_complexity":
@@ -117,20 +98,14 @@ def execute_code_parser_tool(tool_name: str, **kwargs) -> Dict[str, Any]:
                     issues.append("High complexity - consider refactoring")
                 if len(func.get("params", [])) > 5:
                     issues.append("Too many parameters")
-                if len(func.get("code", "").split('\n')) > 50:
+                if len(func.get("code", "").split("\n")) > 50:
                     issues.append("Function too long")
 
-                analysis.append({
-                    "function": func.get("name", "unknown"),
-                    "complexity_score": complexity_score,
-                    "issues": issues
-                })
+                analysis.append(
+                    {"function": func.get("name", "unknown"), "complexity_score": complexity_score, "issues": issues}
+                )
 
-            return {
-                "success": True,
-                "result": analysis,
-                "tool": "code_parser:analyze_complexity"
-            }
+            return {"success": True, "result": analysis, "tool": "code_parser:analyze_complexity"}
 
         else:
             return {"success": False, "error": f"Unknown code parser tool: {tool_name}", "result": None}
@@ -148,11 +123,7 @@ def node(state: AgentState) -> AgentState:
         try:
             # Parse tool call (format: "server:tool(param=value,...)")
             if ":" not in tool_call:
-                result = {
-                    "success": False,
-                    "error": f"Invalid tool call format: {tool_call}",
-                    "tool_call": tool_call
-                }
+                result = {"success": False, "error": f"Invalid tool call format: {tool_call}", "tool_call": tool_call}
             else:
                 server_name, tool_spec = tool_call.split(":", 1)
 
@@ -174,16 +145,8 @@ def node(state: AgentState) -> AgentState:
                 result["tool_call"] = tool_call
 
         except Exception as e:
-            result = {
-                "success": False,
-                "error": str(e),
-                "tool_call": tool_call,
-                "result": None
-            }
+            result = {"success": False, "error": str(e), "tool_call": tool_call, "result": None}
 
         history.append(result)
 
-    return {
-        **state,
-        "history": history
-    }
+    return {**state, "history": history}

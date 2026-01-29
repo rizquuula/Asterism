@@ -26,8 +26,9 @@ def node(state: AgentState) -> AgentState:
         if skill_name == "filesystem" and "list all python files" in description:
             # Check if we successfully listed Python files
             python_files_found = any(
-                h.get("tool") == "filesystem:list_files" and h.get("success") and
-                any(f.endswith('.py') for f in h.get("result", []))
+                h.get("tool") == "filesystem:list_files"
+                and h.get("success")
+                and any(f.endswith(".py") for f in h.get("result", []))
                 for h in successful_tools
             )
             if python_files_found:
@@ -35,18 +36,14 @@ def node(state: AgentState) -> AgentState:
 
         elif skill_name == "code_reader" and "extract function definitions" in description:
             # Check if we successfully read some Python files
-            files_read = any(
-                h.get("tool") == "filesystem:read_file" and h.get("success")
-                for h in successful_tools
-            )
+            files_read = any(h.get("tool") == "filesystem:read_file" and h.get("success") for h in successful_tools)
             if files_read:
                 verification_status = "passed"
 
         elif skill_name == "code_analyzer" and "complexity issues" in description:
             # Check if we performed complexity analysis
             analysis_done = any(
-                h.get("tool") == "code_parser:analyze_complexity" and h.get("success")
-                for h in successful_tools
+                h.get("tool") == "code_parser:analyze_complexity" and h.get("success") for h in successful_tools
             )
             if analysis_done:
                 verification_status = "passed"
@@ -54,8 +51,7 @@ def node(state: AgentState) -> AgentState:
         elif skill_name == "report_writer" and "summary report" in description:
             # Check if we wrote a report file
             report_written = any(
-                h.get("tool") == "filesystem:write_file" and h.get("success")
-                for h in successful_tools
+                h.get("tool") == "filesystem:write_file" and h.get("success") for h in successful_tools
             )
             if report_written:
                 verification_status = "passed"
@@ -65,7 +61,4 @@ def node(state: AgentState) -> AgentState:
             if successful_tools:
                 verification_status = "passed"
 
-    return {
-        **state,
-        "last_verification_status": verification_status
-    }
+    return {**state, "last_verification_status": verification_status}

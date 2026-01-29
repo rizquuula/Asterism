@@ -44,8 +44,8 @@ def highly_complex_function(matrix, operations, filters=None, transformers=None,
 
     for row_idx, row in enumerate(matrix):
         if row_idx % 2 == 0:  # Process even rows
-            if operations.get('double', False):
-                if filters and 'even_only' in filters:
+            if operations.get("double", False):
+                if filters and "even_only" in filters:
                     if all(isinstance(x, (int, float)) for x in row):
                         if validators:
                             if all(validator(x) for x in row for validator in validators):
@@ -67,16 +67,16 @@ def highly_complex_function(matrix, operations, filters=None, transformers=None,
             else:
                 results.append(row)
         else:  # Process odd rows
-            if operations.get('triple', False):
+            if operations.get("triple", False):
                 results.append([x * 3 for x in row])
             else:
                 results.append(row)
 
     # Final processing step
-    if operations.get('sort', False):
+    if operations.get("sort", False):
         results.sort(key=lambda x: sum(x) if x else 0, reverse=True)
 
-    if operations.get('flatten', False):
+    if operations.get("flatten", False):
         results = [item for sublist in results for item in sublist]
 
     return results
@@ -91,18 +91,18 @@ def another_complex_function(a, b, c, d, e, f, g=True, h=None, i=42, j="default"
     if g and h is not None:
         if isinstance(a, list) and isinstance(b, dict):
             if c > 0 and d < 100:
-                if e in ['option1', 'option2', 'option3']:
+                if e in ["option1", "option2", "option3"]:
                     if f is not None:
                         if i > 0:
                             if len(j) > 0:
                                 # Complex nested logic here
                                 result = a.copy()
                                 for key, value in b.items():
-                                    if key.startswith('prefix_'):
+                                    if key.startswith("prefix_"):
                                         if value > c and value < d:
-                                            if e == 'option1':
+                                            if e == "option1":
                                                 result.append(value * 2)
-                                            elif e == 'option2':
+                                            elif e == "option2":
                                                 result.append(value * 3)
                                             else:
                                                 result.append(value * 4)

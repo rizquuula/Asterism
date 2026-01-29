@@ -24,17 +24,14 @@ def openai_provider() -> BaseLLMProvider:
     if not base_url:
         pytest.skip("OPENAI_BASE_URL not set in environment")
 
-    provider = OpenAIProvider(
-        model=model,
-        base_url=base_url,
-        api_key=api_key
-    )
+    provider = OpenAIProvider(model=model, base_url=base_url, api_key=api_key)
     return provider
 
 
 @pytest.fixture
 def simple_schema():
     """A simple Pydantic schema for structured output testing."""
+
     class SimpleResponse(BaseModel):
         answer: str
         confidence: float
@@ -45,6 +42,7 @@ def simple_schema():
 @pytest.fixture
 def complex_schema():
     """A more complex Pydantic schema for structured output testing."""
+
     class ComplexResponse(BaseModel):
         question: str
         answer: str

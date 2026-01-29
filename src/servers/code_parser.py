@@ -2,7 +2,8 @@
 
 import ast
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any
+
 from fastmcp import FastMCP
 
 # Initialize FastMCP server
@@ -21,7 +22,7 @@ class PythonCodeAnalyzer:
         except SyntaxError:
             pass  # We'll handle this gracefully
 
-    def extract_functions(self) -> List[Dict[str, Any]]:
+    def extract_functions(self) -> list[dict[str, Any]]:
         """Extract function definitions from the code."""
         if not self.tree:
             return []
@@ -33,16 +34,17 @@ class PythonCodeAnalyzer:
                 func_info = {
                     "name": node.name,
                     "line_number": node.lineno,
-                    "end_line_number": getattr(node, 'end_lineno', node.lineno),
+                    "end_line_number": getattr(node, "end_lineno", node.lineno),
                     "parameters": [arg.arg for arg in node.args.args],
                     "has_docstring": False,
                     "complexity_score": self._calculate_complexity(node),
-                    "code_length": len(self.source_code.split('\n')[node.lineno-1:getattr(node, 'end_lineno', node.lineno)])
+                    "code_length": len(
+                        self.source_code.split("\n")[node.lineno - 1 : getattr(node, "end_lineno", node.lineno)]
+                    ),
                 }
 
                 # Check for docstring
-                if (node.body and isinstance(node.body[0], ast.Expr) and
-                    isinstance(node.body[0].value, ast.Str)):
+                if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Str):
                     func_info["has_docstring"] = True
 
                 functions.append(func_info)
@@ -65,7 +67,7 @@ class PythonCodeAnalyzer:
 
 
 @app.tool()
-def parse_functions(file_path: str) -> List[Dict[str, Any]]:
+def parse_functions(file_path: str) -> list[dict[str, Any]]:
     """
     Parse a Python file and extract function definitions.
 
@@ -83,10 +85,10 @@ def parse_functions(file_path: str) -> List[Dict[str, Any]]:
         if not path.exists():
             return [{"error": f"File {file_path} does not exist"}]
 
-        if not path.suffix == '.py':
+        if not path.suffix == ".py":
             return [{"error": f"File {file_path} is not a Python file"}]
 
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, encoding="utf-8") as f:
             source_code = f.read()
 
         analyzer = PythonCodeAnalyzer(source_code, str(path))
@@ -101,7 +103,7 @@ def parse_functions(file_path: str) -> List[Dict[str, Any]]:
 
 
 @app.tool()
-def get_function_details(file_path: str, function_name: str) -> Dict[str, Any]:
+def get_function_details(file_path: str, function_name: str) -> dict[str, Any]:
     """
     Get detailed information about a specific function.
 
@@ -122,7 +124,7 @@ def get_function_details(file_path: str, function_name: str) -> Dict[str, Any]:
                 if not path.is_absolute():
                     path = Path.cwd() / path
 
-                with open(path, 'r', encoding='utf-8') as f:
+                with open(path, encoding="utf-8") as f:
                     lines = f.readlines()
 
                 start_line = func["line_number"] - 1  # Convert to 0-based indexing
@@ -145,7 +147,7 @@ def get_function_details(file_path: str, function_name: str) -> Dict[str, Any]:
 
 
 @app.tool()
-def analyze_complexity(functions: List[Dict[str, Any]]) -> Dict[str, Any]:
+def analyze_complexity(functions: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Analyze complexity of multiple functions and provide recommendations.
 
@@ -160,12 +162,7 @@ def analyze_complexity(functions: List[Dict[str, Any]]) -> Dict[str, Any]:
             "total_functions": len(functions),
             "complexity_issues": [],
             "recommendations": [],
-            "summary": {
-                "high_complexity": 0,
-                "too_many_params": 0,
-                "too_long": 0,
-                "missing_docstrings": 0
-            }
+            "summary": {"high_complexity": 0, "too_many_params": 0, "too_long": 0, "missing_docstrings": 0},
         }
 
         for func in functions:
@@ -196,18 +193,24 @@ def analyze_complexity(functions: List[Dict[str, Any]]) -> Dict[str, Any]:
                     analysis["summary"]["missing_docstrings"] += 1
 
                 if issues:
-                    analysis["complexity_issues"].append({
-                        "function": func.get("name", "unknown"),
-                        "line_number": func.get("line_number", 0),
-                        "issues": issues
-                    })
+                    analysis["complexity_issues"].append(
+                        {
+                            "function": func.get("name", "unknown"),
+                            "line_number": func.get("line_number", 0),
+                            "issues": issues,
+                        }
+                    )
 
         # Generate recommendations
         if analysis["summary"]["high_complexity"] > 0:
-            analysis["recommendations"].append("Consider breaking down high-complexity functions into smaller, focused functions")
+            analysis["recommendations"].append(
+                "Consider breaking down high-complexity functions into smaller, focused functions"
+            )
 
         if analysis["summary"]["too_many_params"] > 0:
-            analysis["recommendations"].append("Functions with many parameters should be refactored to use data objects or split into multiple functions")
+            analysis["recommendations"].append(
+                "Functions with many parameters should be refactored to use data objects or split into multi functions"
+            )
 
         if analysis["summary"]["too_long"] > 0:
             analysis["recommendations"].append("Long functions should be split into smaller, single-purpose functions")
@@ -224,4 +227,5 @@ def analyze_complexity(functions: List[Dict[str, Any]]) -> Dict[str, Any]:
 if __name__ == "__main__":
     # Run the MCP server
     import mcp.server.stdio
+
     mcp.server.stdio.run_server(app.to_server())
