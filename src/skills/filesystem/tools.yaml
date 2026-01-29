@@ -1,0 +1,7 @@
+mcp_servers:
+  - filesystem
+
+allowed_tools:
+  - list_files
+  - read_file
+  - write_file
