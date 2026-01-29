@@ -1,8 +1,0 @@
-mcp_servers:
-  - filesystem
-  - code_parser
-
-allowed_tools:
-  - read_file
-  - parse_functions
-  - get_function_details

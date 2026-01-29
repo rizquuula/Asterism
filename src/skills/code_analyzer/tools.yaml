@@ -1,5 +1,0 @@
-mcp_servers:
-  - code_parser
-
-allowed_tools:
-  - analyze_complexity
