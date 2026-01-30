@@ -3,14 +3,16 @@
     "filesystem": {
       "command": "uvx",
       "args": [
-        "external_resources/mcp_servers/filesystem_mcp"
-      ]
+        "external_resources/mcp_servers/stdio/filesystem_mcp"
+      ],
+      "transport": "stdio"
     },
     "code_parser": {
       "command": "uvx",
       "args": [
-        "external_resources/mcp_servers/code_parser_mcp"
-      ]
+        "external_resources/mcp_servers/stdio/code_parser_mcp"
+      ],
+      "transport": "stdio"
     }
   }
 }
