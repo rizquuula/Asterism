@@ -227,7 +227,7 @@ def analyze_complexity(functions: list[dict[str, Any]]) -> dict[str, Any]:
 def main():
     """Run the MCP server."""
     import asyncio
-    
+
     asyncio.run(app.run_stdio_async())
 
 

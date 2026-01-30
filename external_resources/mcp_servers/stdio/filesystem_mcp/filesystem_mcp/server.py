@@ -140,7 +140,7 @@ def get_file_info(file_path: str) -> dict:
 def main():
     """Run the MCP server."""
     import asyncio
-    
+
     asyncio.run(app.run_stdio_async())
 
 
