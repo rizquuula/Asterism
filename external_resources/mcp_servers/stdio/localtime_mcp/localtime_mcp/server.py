@@ -2,12 +2,12 @@
 
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def get_current_time():
     """Get the current local time with timezone information."""
-    now = datetime.now(timezone.utc).astimezone()
+    now = datetime.now(UTC).astimezone()
     return {
         "iso_datetime": now.isoformat(),
         "unix_timestamp": int(now.timestamp()),

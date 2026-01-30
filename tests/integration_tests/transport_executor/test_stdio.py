@@ -1,6 +1,5 @@
 """Integration tests for StdioTransport using localtime MCP server."""
 
-
 from agent.mcp.transport_executor.stdio import StdioTransport
 
 
@@ -16,6 +15,7 @@ def test_list_tools_success(localtime_mcp_path):
         assert "get_current_time" in tools
     finally:
         transport.stop()
+
 
 def test_get_current_time_success(localtime_mcp_path):
     """Test successfully getting current time from the localtime MCP server."""
