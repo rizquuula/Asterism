@@ -137,8 +137,12 @@ def get_file_info(file_path: str) -> dict:
         return {"error": str(e)}
 
 
-if __name__ == "__main__":
-    # Run the MCP server
-    import mcp.server.stdio
+def main():
+    """Run the MCP server."""
+    import asyncio
+    
+    asyncio.run(app.run_stdio_async())
 
-    mcp.server.stdio.run_server(app.to_server())
+
+if __name__ == "__main__":
+    main()

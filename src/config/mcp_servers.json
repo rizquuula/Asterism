@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "uvx",
+      "args": [
+        "external_resources/mcp_servers/filesystem_mcp"
+      ]
+    },
+    "code_parser": {
+      "command": "uvx",
+      "args": [
+        "external_resources/mcp_servers/code_parser_mcp"
+      ]
+    }
+  }
+}
