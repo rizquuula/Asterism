@@ -23,10 +23,8 @@ def test_get_current_time_success(localtime_mcp_path):
 
     try:
         transport.start("uvx", [localtime_mcp_path])
-        result = transport.execute_tool("get_current_time")
+        time_data = transport.execute_tool("get_current_time")
 
-        assert "result" in result
-        time_data = result["result"]
         assert "iso_datetime" in time_data
         assert "unix_timestamp" in time_data
         assert "timezone" in time_data
