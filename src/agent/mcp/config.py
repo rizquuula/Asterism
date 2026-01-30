@@ -1,14 +1,14 @@
 """MCP Configuration Management.
 
 This module provides functionality to load and manage MCP server configurations
-from a YAML file, enabling flexible and dynamic MCP server management.
+from a JSON file, enabling flexible and dynamic MCP server management.
 """
 
+import json
 from pathlib import Path
 from typing import Any
 
-import yaml
-
+MCP_SERVERS_KEY = "mcpServers"
 
 class MCPConfig:
     """MCP server configuration manager."""
@@ -22,7 +22,7 @@ class MCPConfig:
         """
         if config_path is None:
             # Use the project root config directory
-            config_path = Path(__file__).parent.parent.parent.parent / "config" / "mcp_servers.yaml"
+            config_path = Path(__file__).parent.parent.parent / "config" / "mcp_servers.json"
 
         self.config_path = Path(config_path)
         self._config: dict[str, Any] | None = None
@@ -43,16 +43,16 @@ class MCPConfig:
 
         try:
             with open(self.config_path, encoding="utf-8") as f:
-                config = yaml.safe_load(f)
+                config = json.load(f)
 
-            if not config or "mcp_servers" not in config:
-                raise ValueError("Invalid MCP configuration: missing 'mcp_servers' section")
+            if not config or MCP_SERVERS_KEY not in config:
+                raise ValueError("Invalid MCP configuration: missing 'mcpServers' section")
 
             self._config = config
             return config
 
-        except yaml.YAMLError as e:
-            raise yaml.YAMLError(f"Error parsing MCP configuration file: {e}") from e
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error parsing MCP configuration file: {e}") from e
 
     def get_config(self) -> dict[str, Any]:
         """
@@ -79,7 +79,7 @@ class MCPConfig:
             Dictionary containing server configuration, or None if not found.
         """
         config = self.get_config()
-        servers = config.get("mcp_servers", {})
+        servers = config.get(MCP_SERVERS_KEY, {})
 
         if server_name not in servers:
             return None
@@ -106,7 +106,7 @@ class MCPConfig:
             List of server names.
         """
         config = self.get_config()
-        servers = config.get("mcp_servers", {})
+        servers = config.get(MCP_SERVERS_KEY, {})
         return list(servers.keys())
 
     def get_enabled_servers(self) -> list[str]:
@@ -117,7 +117,7 @@ class MCPConfig:
             List of enabled server names.
         """
         config = self.get_config()
-        servers = config.get("mcp_servers", {})
+        servers = config.get(MCP_SERVERS_KEY, {})
 
         enabled_servers = []
         for server_name, server_config in servers.items():
@@ -141,52 +141,25 @@ class MCPConfig:
             return False
         return server_config.get("enabled", True)
 
-    def get_server_tools(self, server_name: str) -> list[str]:
+    def get_server_metadata(self, server_name: str) -> dict[str, Any] | None:
         """
-        Get list of available tools for a specific MCP server.
+        Get server metadata including command and transport type.
 
         Args:
             server_name: Name of the MCP server.
 
         Returns:
-            List of tool names, or empty list if server not found.
-        """
-        server_config = self.get_server_config(server_name)
-        if server_config is None:
-            return []
-        return server_config.get("tools", [])
-
-    def is_tool_available(self, server_name: str, tool_name: str) -> bool:
-        """
-        Check if a specific tool is available on a server.
-
-        Args:
-            server_name: Name of the MCP server.
-            tool_name: Name of the tool.
-
-        Returns:
-            True if tool is available, False otherwise.
-        """
-        if not self.is_server_enabled(server_name):
-            return False
-
-        tools = self.get_server_tools(server_name)
-        return tool_name in tools
-
-    def get_connection_info(self, server_name: str) -> dict[str, Any] | None:
-        """
-        Get connection information for a specific MCP server.
-
-        Args:
-            server_name: Name of the MCP server.
-
-        Returns:
-            Dictionary containing connection information, or None if server not found.
+            Dictionary containing server metadata, or None if server not found.
         """
         server_config = self.get_server_config(server_name)
         if server_config is None:
             return None
-        return server_config.get("connection", {})
+
+        return {
+            "command": server_config.get("command"),
+            "args": server_config.get("args", []),
+            "transport": server_config.get("transport", "stdio")
+        }
 
 
 # Global MCP configuration instance

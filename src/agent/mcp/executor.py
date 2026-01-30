@@ -6,7 +6,10 @@ configuration, replacing the hardcoded implementations in the executor node.
 
 from typing import Any
 
+from agent.mcp.transport_executor.base import BaseTransport
+
 from .config import get_mcp_config
+from .transport_executor import create_transport
 
 
 class MCPExecutor:
@@ -22,6 +25,23 @@ class MCPExecutor:
         self.config = get_mcp_config()
         if config_path:
             self.config = self.config.load_config(config_path)
+        self.transports: dict[str, BaseTransport | None] = {}
+        self.tool_cache: dict[str, list] = {}
+
+    def _get_transport(self, server_name: str) -> BaseTransport:
+        """Get or create transport for a server."""
+        if server_name not in self.transports:
+            metadata = self.config.get_server_metadata(server_name)
+            if not metadata:
+                raise ValueError(f"No metadata found for server: {server_name}")
+
+            transport = create_transport(metadata["transport"])
+            transport.start(metadata["command"], metadata["args"])
+            self.transports[server_name] = transport
+
+            # Cache tools for this server
+            self.tool_cache[server_name] = transport.list_tools()
+        return self.transports[server_name]
 
     def execute_tool(self, server_name: str, tool_name: str, **kwargs) -> dict[str, Any]:
         """
@@ -41,7 +61,7 @@ class MCPExecutor:
                 - tool_call: The original tool call string
         """
         try:
-            # Validate server and tool availability
+            # Validate server is enabled
             if not self.config.is_server_enabled(server_name):
                 return {
                     "success": False,
@@ -51,23 +71,26 @@ class MCPExecutor:
                     "tool_call": f"{server_name}:{tool_name}",
                 }
 
-            if not self.config.is_tool_available(server_name, tool_name):
+            # Get transport and validate tool
+            transport = self._get_transport(server_name)
+            if tool_name not in self.tool_cache.get(server_name, []):
                 return {
                     "success": False,
-                    "error": f"Tool '{tool_name}' is not available on server '{server_name}'",
+                    "error": f"Tool '{tool_name}' not found on server '{server_name}'",
                     "result": None,
                     "tool": f"{server_name}:{tool_name}",
                     "tool_call": f"{server_name}:{tool_name}",
                 }
 
-            # Get connection information
-            connection_info = self.config.get_connection_info(server_name)
-
-            # Execute the tool based on server type
-            if connection_info.get("type") == "local":
-                return self._execute_local_tool(server_name, tool_name, **kwargs)
-            else:
-                return self._execute_remote_tool(server_name, tool_name, connection_info, **kwargs)
+            # Execute the tool via transport
+            result = transport.execute_tool(tool_name, **kwargs)
+            return {
+                "success": True,
+                "result": result,
+                "error": None,
+                "tool": f"{server_name}:{tool_name}",
+                "tool_call": f"{server_name}:{tool_name}",
+            }
 
         except Exception as e:
             return {
@@ -77,58 +100,6 @@ class MCPExecutor:
                 "tool": f"{server_name}:{tool_name}",
                 "tool_call": f"{server_name}:{tool_name}",
             }
-
-    def _execute_local_tool(self, server_name: str, tool_name: str, **kwargs) -> dict[str, Any]:
-        """
-        Execute a local MCP tool.
-
-        Args:
-            server_name: Name of the local MCP server.
-            tool_name: Name of the tool to execute.
-            **kwargs: Additional arguments for the tool.
-
-        Returns:
-            Dictionary containing execution result.
-        """
-        ## TODO: Implement local MCP tool execution logic
-
-        return {
-            "success": False,
-            "error": f"Local MCP server '{server_name}' not yet implemented",
-            "result": None,
-            "tool": f"{server_name}:{tool_name}",
-            "tool_call": f"{server_name}:{tool_name}",
-        }
-
-    def _execute_remote_tool(
-        self, server_name: str, tool_name: str, connection_info: dict[str, Any], **kwargs
-    ) -> dict[str, Any]:
-        """
-        Execute a remote MCP tool.
-
-        Args:
-            server_name: Name of the remote MCP server.
-            tool_name: Name of the tool to execute.
-            connection_info: Connection information for the remote server.
-            **kwargs: Additional arguments for the tool.
-
-        Returns:
-            Dictionary containing execution result.
-        """
-        # TODO: Implement remote MCP server communication
-        # This would typically involve:
-        # 1. Establishing connection to remote MCP server
-        # 2. Authenticating if required
-        # 3. Sending tool execution request
-        # 4. Handling response and errors
-
-        return {
-            "success": False,
-            "error": f"Remote MCP server '{server_name}' not yet implemented",
-            "result": None,
-            "tool": f"{server_name}:{tool_name}",
-            "tool_call": f"{server_name}:{tool_name}",
-        }
 
     def get_available_tools(self) -> dict[str, list]:
         """
@@ -141,8 +112,12 @@ class MCPExecutor:
         enabled_servers = self.config.get_enabled_servers()
 
         for server_name in enabled_servers:
-            tools = self.config.get_server_tools(server_name)
-            available_tools[server_name] = tools
+            # Initialize transport to populate tool cache
+            try:
+                self._get_transport(server_name)
+                available_tools[server_name] = self.tool_cache.get(server_name, [])
+            except Exception:
+                available_tools[server_name] = []
 
         return available_tools
 
@@ -157,7 +132,18 @@ class MCPExecutor:
         Returns:
             True if the tool call is valid, False otherwise.
         """
-        return self.config.is_tool_available(server_name, tool_name)
+        try:
+            return tool_name in self.tool_cache.get(server_name, [])
+        except Exception:
+            return False
+
+    def shutdown(self):
+        """Clean up all transport connections."""
+        for name, transport in self.transports.items():
+            if transport:
+                transport.stop()
+        self.transports = {}
+        self.tool_cache = {}
 
 
 # Global MCP executor instance
