@@ -5,6 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from agent.graph import app
+from agent.mcp.executor import mcp_executor_session
 
 
 def main():
@@ -40,34 +41,36 @@ def main():
         print("Starting agent workflow...")
         print()
 
-        # Run the agent
+        # Run the agent with MCP executor session for graceful shutdown
         result = None
-        for output in app.stream(initial_state):
-            for node_name, state in output.items():
-                print(f"Executing node: {node_name}")
+        with mcp_executor_session():
+            for output in app.stream(initial_state):
+                for node_name, state in output.items():
+                    print(f"Executing node: {node_name}")
 
-                # Show current milestone if available
-                if state.get("milestones") and state.get("current_idx") < len(state["milestones"]):
-                    current_milestone = state["milestones"][state["current_idx"]]
-                    print(f"   Milestone: {current_milestone.description}")
-                    print(f"   Skill: {current_milestone.assigned_skill}")
+                    # Show current milestone if available
+                    if state.get("milestones") and state.get("current_idx") < len(state["milestones"]):
+                        current_milestone = state["milestones"][state["current_idx"]]
+                        print(f"   Milestone: {current_milestone.description}")
+                        print(f"   Skill: {current_milestone.assigned_skill}")
 
-                # Show tactical plan if available
-                if state.get("tactical_plan"):
-                    print(f"   Tools: {', '.join(state['tactical_plan'])}")
+                    # Show tactical plan if available
+                    if state.get("tactical_plan"):
+                        print(f"   Tools: {', '.join(state['tactical_plan'])}")
 
-                # Show verification status
-                if state.get("last_verification_status"):
-                    status = state["last_verification_status"]
-                    icon = "PASS" if status == "passed" else "FAIL"
-                    print(f"   Status: {icon} {status}")
+                    # Show verification status
+                    if state.get("last_verification_status"):
+                        status = state["last_verification_status"]
+                        icon = "PASS" if status == "passed" else "FAIL"
+                        print(f"   Status: {icon} {status}")
 
-                print()
+                    print()
 
-            result = state
+                result = state
 
-        print("Agent execution completed!")
-        print()
+            print("Agent execution completed!")
+            print()
+        # MCP connections automatically cleaned up on exit from context
 
         # Show final results
         if result and result.get("history"):
@@ -100,9 +103,6 @@ def main():
         traceback.print_exc()
 
     print("\nDemo completed!")
-    print("\nTo use with a real LLM provider:")
-    print("1. Set OPENAI_API_KEY in your .env file")
-    print("2. Update the code to use OpenAIProvider instead of MockProvider")
 
 
 if __name__ == "__main__":

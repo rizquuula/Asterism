@@ -4,6 +4,8 @@ This module provides a dynamic interface for executing MCP tools based on
 configuration, replacing the hardcoded implementations in the executor node.
 """
 
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import Any
 
 from agent.mcp.transport_executor.base import BaseTransport
@@ -182,3 +184,27 @@ def execute_mcp_tool(server_name: str, tool_name: str, **kwargs) -> dict[str, An
     """
     executor = get_mcp_executor()
     return executor.execute_tool(server_name, tool_name, **kwargs)
+
+
+@contextmanager
+def mcp_executor_session() -> Generator[MCPExecutor]:
+    """
+    Context manager for MCP executor lifecycle management.
+
+    This context manager ensures proper cleanup of transport connections
+    when the executor is no longer needed, providing graceful shutdown
+    of all MCP server connections.
+
+    Yields:
+        MCPExecutor: The global MCP executor instance.
+
+    Example:
+        with mcp_executor_session() as executor:
+            result = executor.execute_tool("server", "tool")
+        # Connections are automatically cleaned up on exit
+    """
+    executor = get_mcp_executor()
+    try:
+        yield executor
+    finally:
+        executor.shutdown()
