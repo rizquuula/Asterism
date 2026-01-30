@@ -138,9 +138,7 @@ class HTTPStreamTransport(BaseTransport):
             "mcp-session-id": self._session_id or "",
         }
 
-    def _post_request(
-        self, url: str, headers: dict[str, str], message: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _post_request(self, url: str, headers: dict[str, str], message: dict[str, Any]) -> dict[str, Any]:
         """Execute HTTP POST request and parse response."""
         try:
             with self._session.post(

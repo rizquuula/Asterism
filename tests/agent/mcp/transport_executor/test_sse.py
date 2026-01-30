@@ -36,11 +36,13 @@ def test_sse_start_success(mock_thread_class, mock_session_class):
     transport._message_endpoint = "http://localhost:3000/message"
 
     # Pre-populate response queue with init response
-    transport._response_queue.put({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {"protocolVersion": "2024-11-05"},
-    })
+    transport._response_queue.put(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {"protocolVersion": "2024-11-05"},
+        }
+    )
 
     # Mock time.sleep to avoid actual sleep
     with patch("time.sleep"):

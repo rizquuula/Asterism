@@ -15,6 +15,7 @@ mcp = FastMCP(
     port=port,
 )
 
+
 @mcp.tool()
 def get_current_time() -> dict:
     """Get the current local time with timezone information.

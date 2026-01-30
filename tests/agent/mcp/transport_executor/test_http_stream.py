@@ -257,9 +257,7 @@ def test_http_stream_execute_tool_empty_content(mock_session_class):
 
     mock_tool_response = MagicMock()
     mock_tool_response.ok = True
-    mock_tool_response.iter_lines.return_value = [
-        b'data: {"jsonrpc": "2.0", "id": 3, "result": {"content": []}}'
-    ]
+    mock_tool_response.iter_lines.return_value = [b'data: {"jsonrpc": "2.0", "id": 3, "result": {"content": []}}']
     mock_tool_response.__enter__ = MagicMock(return_value=mock_tool_response)
     mock_tool_response.__exit__ = MagicMock(return_value=False)
 
