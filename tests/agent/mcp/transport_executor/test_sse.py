@@ -1,4 +1,4 @@
-"""Test MCP SSE transport."""
+"""Unit tests for SSETransport."""
 
 import json
 from unittest.mock import MagicMock, patch
@@ -8,262 +8,117 @@ import pytest
 from agent.mcp.transport_executor.sse import SSETransport
 
 
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_start_success(mock_session_class):
-    """Test successful start of SSE transport."""
-    mock_session = MagicMock()
-    mock_response = MagicMock()
-    mock_response.ok = True
-    mock_session.get.return_value = mock_response
-    mock_session_class.return_value = mock_session
-
+def test_sse_transport_init():
+    """Test SSETransport initialization."""
     transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
-
-    assert transport._base_url == "http://localhost:8080"
-    assert transport._session == mock_session
-    mock_session.get.assert_called_once_with(
-        "http://localhost:8080/health",
-        timeout=30,
-    )
-
-
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_start_no_url(mock_session_class):
-    """Test start without URL raises error."""
-    transport = SSETransport()
-
-    with pytest.raises(ValueError, match="SSE transport requires server URL"):
-        transport.start("test", [])
-
-
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_start_health_check_fails(mock_session_class):
-    """Test start when health check fails."""
-    mock_session = MagicMock()
-    mock_response = MagicMock()
-    mock_response.ok = False
-    mock_response.text = "Server Error"
-    mock_session.get.return_value = mock_response
-    mock_session_class.return_value = mock_session
-
-    transport = SSETransport()
-
-    with pytest.raises(RuntimeError, match="Server health check failed"):
-        transport.start("test", ["http://localhost:8080"])
-
-
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_start_connection_error(mock_session_class):
-    """Test start when connection fails."""
-    import requests
-
-    mock_session = MagicMock()
-    mock_session.get.side_effect = requests.RequestException("Connection refused")
-    mock_session_class.return_value = mock_session
-
-    transport = SSETransport()
-
-    with pytest.raises(RuntimeError, match="SSE connection failed"):
-        transport.start("test", ["http://localhost:8080"])
-
-
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_stop(mock_session_class):
-    """Test stopping SSE transport."""
-    mock_session = MagicMock()
-    mock_response = MagicMock()
-    mock_response.ok = True
-    mock_session.get.return_value = mock_response
-    mock_session_class.return_value = mock_session
-
-    transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
-    transport.stop()
-
-    mock_session.close.assert_called_once()
     assert transport._session is None
     assert transport._base_url is None
+    assert transport._timeout == 30
+    assert transport._request_id == 0
+    assert transport._initialized is False
+    assert transport._message_endpoint is None
 
 
 @patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_stop_no_session(mock_session_class):
-    """Test stopping SSE transport when no session exists."""
-    transport = SSETransport()
-    transport.stop()
-
-    # Should not raise any errors
-    assert transport._session is None
-    assert transport._base_url is None
-
-
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_is_alive_true(mock_session_class):
-    """Test is_alive returns True when connected."""
+@patch("agent.mcp.transport_executor.sse.threading.Thread")
+def test_sse_start_success(mock_thread_class, mock_session_class):
+    """Test successful start and initialization."""
+    # Setup mock session
     mock_session = MagicMock()
-    mock_response = MagicMock()
-    mock_response.ok = True
-    mock_session.get.return_value = mock_response
     mock_session_class.return_value = mock_session
 
+    # Setup mock thread
+    mock_thread = MagicMock()
+    mock_thread_class.return_value = mock_thread
+
     transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
+    # Set message endpoint manually (normally set by SSE listener)
+    transport._message_endpoint = "http://localhost:3000/message"
 
-    assert transport.is_alive() is True
+    # Pre-populate response queue with init response
+    transport._response_queue.put({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {"protocolVersion": "2024-11-05"},
+    })
 
+    # Mock time.sleep to avoid actual sleep
+    with patch("time.sleep"):
+        transport.start("http", ["http://localhost:3000"])
 
-def test_sse_transport_is_alive_false():
-    """Test is_alive returns False when not connected."""
-    transport = SSETransport()
-    assert transport.is_alive() is False
+    assert transport._base_url == "http://localhost:3000"
+    assert transport._session is not None
+    assert transport._initialized is True
 
 
 @patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_is_alive_no_session(mock_session_class):
-    """Test is_alive returns False when session is None."""
-    mock_session = MagicMock()
-    mock_response = MagicMock()
-    mock_response.ok = True
-    mock_session.get.return_value = mock_response
-    mock_session_class.return_value = mock_session
-
+def test_sse_start_without_args_raises(mock_session_class):
+    """Test start raises ValueError when args is empty."""
     transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
-    transport._session = None
-
-    assert transport.is_alive() is False
+    with pytest.raises(ValueError, match="SSE transport requires server URL in args"):
+        transport.start("http", [])
 
 
 @patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_execute_tool_success(mock_session_class):
+def test_sse_execute_tool_success(mock_session_class):
     """Test successful tool execution."""
+    # Setup mock session
     mock_session = MagicMock()
-    mock_response = MagicMock()
-    mock_response.ok = True
-    mock_response.status_code = 200
-    mock_session.get.return_value = mock_response
-    mock_session.post.return_value = mock_response
     mock_session_class.return_value = mock_session
 
+    # Setup mock response
+    mock_post_response = MagicMock()
+    mock_post_response.ok = True
+    mock_post_response.json.return_value = {"result": "posted"}
+    mock_session.post.return_value = mock_post_response
+
     transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
+    transport._base_url = "http://localhost:3000"
+    transport._session = mock_session
+    transport._message_endpoint = "http://localhost:3000/message"
+    transport._initialized = True
+    transport._request_id = 1
 
-    # Mock event stream to return a matching event
-    transport._event_stream = iter(
-        [
-            {"tool": "test_tool", "result": "test_result"},
-        ]
-    )
+    # Put response in queue
+    response_data = {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "result": {"content": [{"type": "text", "text": json.dumps({"result": "success"})}]},
+    }
+    transport._response_queue.put(response_data)
 
-    result = transport.execute_tool("test_tool", arg1="value1")
+    result = transport.execute_tool("test_tool", param1="value1")
 
     assert result["success"] is True
-    assert result["result"] == "test_result"
-    mock_session.post.assert_called_once_with(
-        "http://localhost:8080/tools/test_tool",
-        json={"arg1": "value1"},
-        timeout=30,
-    )
+    assert result["result"] == {"result": "success"}
 
 
 @patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_execute_tool_not_connected(mock_session_class):
-    """Test tool execution when not connected."""
-    transport = SSETransport()
-
-    with pytest.raises(RuntimeError, match="SSE transport is not connected"):
-        transport.execute_tool("test_tool")
-
-
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_execute_tool_http_error(mock_session_class):
-    """Test tool execution with HTTP error."""
+def test_sse_list_tools_success(mock_session_class):
+    """Test successful tools listing."""
+    # Setup mock session
     mock_session = MagicMock()
-    mock_health_response = MagicMock()
-    mock_health_response.ok = True
-    mock_session.get.return_value = mock_health_response
+    mock_session_class.return_value = mock_session
 
+    # Setup mock response
     mock_post_response = MagicMock()
-    mock_post_response.status_code = 500
-    mock_post_response.text = "Internal Server Error"
+    mock_post_response.ok = True
     mock_session.post.return_value = mock_post_response
-    mock_session_class.return_value = mock_session
 
     transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
-    transport._event_stream = iter([])
+    transport._base_url = "http://localhost:3000"
+    transport._session = mock_session
+    transport._message_endpoint = "http://localhost:3000/message"
+    transport._initialized = True
+    transport._request_id = 1
 
-    result = transport.execute_tool("test_tool")
-
-    assert result["success"] is False
-    assert "HTTP error 500" in result["error"]
-
-
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_execute_tool_request_exception(mock_session_class):
-    """Test tool execution with request exception."""
-    import requests
-
-    mock_session = MagicMock()
-    mock_health_response = MagicMock()
-    mock_health_response.ok = True
-    mock_session.get.return_value = mock_health_response
-    mock_session.post.side_effect = requests.RequestException("Network error")
-    mock_session_class.return_value = mock_session
-
-    transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
-    transport._event_stream = iter([])
-
-    result = transport.execute_tool("test_tool")
-
-    assert result["success"] is False
-    assert "SSE request failed" in result["error"]
-
-
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_execute_tool_no_response(mock_session_class):
-    """Test tool execution with no response from server."""
-    mock_session = MagicMock()
-    mock_health_response = MagicMock()
-    mock_health_response.ok = True
-    mock_session.get.return_value = mock_health_response
-
-    mock_post_response = MagicMock()
-    mock_post_response.status_code = 200
-    mock_session.post.return_value = mock_post_response
-    mock_session_class.return_value = mock_session
-
-    transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
-    transport._event_stream = iter([])  # Empty event stream
-
-    result = transport.execute_tool("test_tool")
-
-    assert result["success"] is False
-    assert "No response received from server" in result["error"]
-
-
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_list_tools_success(mock_session_class):
-    """Test listing tools successfully."""
-    mock_session = MagicMock()
-    mock_health_response = MagicMock()
-    mock_health_response.ok = True
-    mock_session.get.return_value = mock_health_response
-
-    mock_post_response = MagicMock()
-    mock_post_response.status_code = 200
-    mock_session.post.return_value = mock_post_response
-    mock_session_class.return_value = mock_session
-
-    transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
-    transport._event_stream = iter(
-        [
-            {"tool": "_list_tools", "result": {"tools": ["tool1", "tool2"]}},
-        ]
-    )
+    # Put response in queue
+    response_data = {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "result": {"tools": [{"name": "tool1"}, {"name": "tool2"}]},
+    }
+    transport._response_queue.put(response_data)
 
     tools = transport.list_tools()
 
@@ -272,57 +127,125 @@ def test_sse_transport_list_tools_success(mock_session_class):
 
 
 @patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_list_tools_failure(mock_session_class):
-    """Test listing tools when execution fails."""
+def test_sse_is_alive(mock_session_class):
+    """Test is_alive returns correct state."""
+    transport = SSETransport()
+    assert not transport.is_alive()
+
+    transport._session = MagicMock()
+    transport._base_url = "http://localhost:3000"
+    assert transport.is_alive()
+
+    transport._session = None
+    assert not transport.is_alive()
+
+
+@patch("agent.mcp.transport_executor.sse.requests.Session")
+@patch("agent.mcp.transport_executor.sse.threading.Thread")
+def test_sse_stop_closes_session(mock_thread_class, mock_session_class):
+    """Test stop closes session and stops thread."""
     mock_session = MagicMock()
-    mock_health_response = MagicMock()
-    mock_health_response.ok = True
-    mock_session.get.return_value = mock_health_response
+    mock_session_class.return_value = mock_session
+
+    mock_thread = MagicMock()
+    mock_thread_class.return_value = mock_thread
+    mock_thread.is_alive.return_value = True
+
+    transport = SSETransport()
+    transport._base_url = "http://localhost:3000"
+    transport._session = mock_session
+    transport._sse_thread = mock_thread
+    transport._message_endpoint = "http://localhost:3000/message"
+    transport._initialized = True
+
+    transport.stop()
+
+    mock_session.close.assert_called_once()
+    assert transport._session is None
+    assert transport._base_url is None
+    assert transport._initialized is False
+    assert transport._message_endpoint is None
+
+
+@patch("agent.mcp.transport_executor.sse.requests.Session")
+def test_sse_execute_tool_non_json_response(mock_session_class):
+    """Test tool execution with non-JSON response returns text."""
+    mock_session = MagicMock()
+    mock_session_class.return_value = mock_session
 
     mock_post_response = MagicMock()
-    mock_post_response.status_code = 500
-    mock_post_response.text = "Error"
+    mock_post_response.ok = True
     mock_session.post.return_value = mock_post_response
-    mock_session_class.return_value = mock_session
 
     transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
-    transport._event_stream = iter([])
+    transport._base_url = "http://localhost:3000"
+    transport._session = mock_session
+    transport._message_endpoint = "http://localhost:3000/message"
+    transport._initialized = True
+    transport._request_id = 1
 
-    tools = transport.list_tools()
+    # Put response with non-JSON text in queue
+    response_data = {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "result": {"content": [{"type": "text", "text": "plain text result"}]},
+    }
+    transport._response_queue.put(response_data)
 
-    assert tools == []
+    result = transport.execute_tool("test_tool")
+
+    assert result["success"] is True
+    assert result["result"] == {"text": "plain text result"}
 
 
 @patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_list_tools_not_connected(mock_session_class):
-    """Test listing tools when not connected."""
-    transport = SSETransport()
-    tools = transport.list_tools()
-
-    assert tools == []
-
-
-@patch("agent.mcp.transport_executor.sse.requests.Session")
-def test_sse_transport_create_event_stream(mock_session_class):
-    """Test creating event stream."""
+def test_sse_execute_tool_empty_content(mock_session_class):
+    """Test tool execution with empty content."""
     mock_session = MagicMock()
-    mock_health_response = MagicMock()
-    mock_health_response.ok = True
-    mock_session.get.return_value = mock_health_response
-
-    mock_stream_response = MagicMock()
-    mock_stream_response.iter_lines.return_value = [
-        json.dumps({"event": "test"}).encode("utf-8"),
-    ]
-    mock_session.get.side_effect = [mock_health_response, mock_stream_response]
     mock_session_class.return_value = mock_session
 
-    transport = SSETransport()
-    transport.start("test", ["http://localhost:8080"])
+    mock_post_response = MagicMock()
+    mock_post_response.ok = True
+    mock_session.post.return_value = mock_post_response
 
-    # Check that event stream was created
-    assert transport._event_stream is not None
+    transport = SSETransport()
+    transport._base_url = "http://localhost:3000"
+    transport._session = mock_session
+    transport._message_endpoint = "http://localhost:3000/message"
+    transport._initialized = True
+    transport._request_id = 1
+
+    # Put response with empty content in queue
+    response_data = {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "result": {"content": []},
+    }
+    transport._response_queue.put(response_data)
+
+    result = transport.execute_tool("test_tool")
+
+    assert result["success"] is True
+    assert result["result"] == {}
+
+
+@patch("agent.mcp.transport_executor.sse.requests.Session")
+@patch("agent.mcp.transport_executor.sse.threading.Thread")
+def test_sse_list_tools_not_initialized_returns_empty(mock_thread_class, mock_session_class):
+    """Test list_tools returns empty list when not initialized."""
+    mock_session = MagicMock()
+    mock_session_class.return_value = mock_session
+
+    mock_thread = MagicMock()
+    mock_thread_class.return_value = mock_thread
+
+    transport = SSETransport()
+    transport._base_url = "http://localhost:3000"
+    transport._session = mock_session
+    transport._initialized = False
+
+    tools = transport.list_tools()
+    assert tools == []
 
 
 if __name__ == "__main__":

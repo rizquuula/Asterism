@@ -1,4 +1,4 @@
-"""Test MCP stdio transport."""
+"""Unit tests for StdioTransport."""
 
 import json
 import subprocess
@@ -9,237 +9,241 @@ import pytest
 from agent.mcp.transport_executor.stdio import StdioTransport
 
 
+def test_stdio_transport_init():
+    """Test StdioTransport initialization."""
+    transport = StdioTransport()
+    assert transport._process is None
+    assert transport._request_id == 0
+    assert transport._initialized is False
+
+
 @patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_start_success(mock_popen):
-    """Test successful start of stdio transport."""
+def test_stdio_start_success(mock_popen_class):
+    """Test successful start and initialization."""
+    # Setup mock process
     mock_process = MagicMock()
-    mock_popen.return_value = mock_process
+    mock_process.stdout.readline.return_value = json.dumps(
+        {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2024-11-05"}}
+    )
+    mock_process.poll.return_value = None
+    mock_popen_class.return_value = mock_process
 
     transport = StdioTransport()
-    transport.start("test_command", ["arg1", "arg2"])
+    transport.start("python", ["-m", "test_server"])
 
-    mock_popen.assert_called_once_with(
-        ["test_command", "arg1", "arg2"],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+    mock_popen_class.assert_called_once_with(
+        ["python", "-m", "test_server"],
+        stdin=-1,
+        stdout=-1,
+        stderr=-1,
         text=True,
         bufsize=1,
         universal_newlines=True,
     )
-    assert transport._process == mock_process
+    assert transport._initialized is True
+    assert transport._process is not None
 
 
 @patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_start_failure(mock_popen):
-    """Test start failure of stdio transport."""
-    mock_popen.side_effect = Exception("Failed to start process")
-
-    transport = StdioTransport()
-    with pytest.raises(RuntimeError, match="Failed to start MCP server"):
-        transport.start("test_command", ["arg1"])
-
-
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_stop_terminate(mock_popen):
-    """Test stopping transport with terminate."""
-    mock_process = MagicMock()
-    mock_process.poll.return_value = None
-    mock_popen.return_value = mock_process
-
-    transport = StdioTransport()
-    transport.start("test_command", [])
-    transport.stop()
-
-    mock_process.terminate.assert_called_once()
-    mock_process.wait.assert_called_once_with(timeout=5)
-
-
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_stop_kill(mock_popen):
-    """Test stopping transport with kill after timeout."""
-    mock_process = MagicMock()
-    mock_process.poll.return_value = None
-    mock_process.wait.side_effect = subprocess.TimeoutExpired(cmd="test", timeout=5)
-    mock_popen.return_value = mock_process
-
-    transport = StdioTransport()
-    transport.start("test_command", [])
-    transport.stop()
-
-    mock_process.terminate.assert_called_once()
-    mock_process.wait.assert_called_once_with(timeout=5)
-    mock_process.kill.assert_called_once()
-
-
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_stop_not_running(mock_popen):
-    """Test stopping transport when not running."""
-    mock_process = MagicMock()
-    mock_process.poll.return_value = 0  # Process already exited
-    mock_popen.return_value = mock_process
-
-    transport = StdioTransport()
-    transport.start("test_command", [])
-    transport.stop()
-
-    mock_process.terminate.assert_not_called()
-
-
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_is_alive_true(mock_popen):
-    """Test is_alive returns True when process is running."""
-    mock_process = MagicMock()
-    mock_process.poll.return_value = None
-    mock_popen.return_value = mock_process
-
-    transport = StdioTransport()
-    transport.start("test_command", [])
-
-    assert transport.is_alive() is True
-
-
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_is_alive_false(mock_popen):
-    """Test is_alive returns False when process is not running."""
-    mock_process = MagicMock()
-    mock_process.poll.return_value = 0
-    mock_popen.return_value = mock_process
-
-    transport = StdioTransport()
-    transport.start("test_command", [])
-
-    assert transport.is_alive() is False
-
-
-def test_stdio_transport_is_alive_no_process():
-    """Test is_alive returns False when no process exists."""
-    transport = StdioTransport()
-    assert transport.is_alive() is False
-
-
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_execute_tool_success(mock_popen):
+def test_stdio_execute_tool_success(mock_popen_class):
     """Test successful tool execution."""
+    # Setup mock process
     mock_process = MagicMock()
     mock_process.poll.return_value = None
-    mock_process.stdout.readline.return_value = json.dumps(
-        {
-            "jsonrpc": "2.0",
-            "result": "test_result",
-            "id": 1,
-        }
-    )
-    mock_popen.return_value = mock_process
+
+    # First call for initialization, second for tool execution
+    mock_process.stdout.readline.side_effect = [
+        json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2024-11-05"}}),
+        json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "result": {"content": [{"type": "text", "text": json.dumps({"result": "success"})}]},
+            }
+        ),
+    ]
+    mock_popen_class.return_value = mock_process
 
     transport = StdioTransport()
-    transport.start("test_command", [])
-    result = transport.execute_tool("test_tool", arg1="value1")
+    transport.start("python", ["-m", "test_server"])
 
-    assert result["result"] == "test_result"
-    mock_process.stdin.write.assert_called_once()
-    mock_process.stdin.flush.assert_called_once()
+    result = transport.execute_tool("test_tool", param1="value1")
+
+    assert result == {"result": "success"}
 
 
 @patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_execute_tool_not_running(mock_popen):
-    """Test tool execution when process is not running."""
-    mock_process = MagicMock()
-    mock_process.poll.return_value = 0
-    mock_popen.return_value = mock_process
-
-    transport = StdioTransport()
-    transport.start("test_command", [])
-
-    with pytest.raises(RuntimeError, match="Server process is not running"):
-        transport.execute_tool("test_tool")
-
-
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_execute_tool_failure(mock_popen):
-    """Test tool execution failure."""
+def test_stdio_list_tools_success(mock_popen_class):
+    """Test successful tools listing."""
+    # Setup mock process
     mock_process = MagicMock()
     mock_process.poll.return_value = None
-    mock_process.stdin.write.side_effect = Exception("Write failed")
-    mock_popen.return_value = mock_process
+
+    # First call for initialization, second for list_tools
+    mock_process.stdout.readline.side_effect = [
+        json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2024-11-05"}}),
+        json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "result": {"tools": [{"name": "tool1"}, {"name": "tool2"}]},
+            }
+        ),
+    ]
+    mock_popen_class.return_value = mock_process
 
     transport = StdioTransport()
-    transport.start("test_command", [])
+    transport.start("python", ["-m", "test_server"])
 
-    with pytest.raises(RuntimeError, match="Tool execution failed"):
-        transport.execute_tool("test_tool")
-
-
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_execute_tool_incrementing_id(mock_popen):
-    """Test that request IDs are incrementing."""
-    mock_process = MagicMock()
-    mock_process.poll.return_value = None
-    mock_process.stdout.readline.return_value = json.dumps(
-        {
-            "jsonrpc": "2.0",
-            "result": "test",
-            "id": 1,
-        }
-    )
-    mock_popen.return_value = mock_process
-
-    transport = StdioTransport()
-    transport.start("test_command", [])
-
-    # Execute tool multiple times
-    transport.execute_tool("tool1")
-    assert transport._request_id == 1
-
-    transport.execute_tool("tool2")
-    assert transport._request_id == 2
-
-    transport.execute_tool("tool3")
-    assert transport._request_id == 3
-
-
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_list_tools(mock_popen):
-    """Test listing tools."""
-    mock_process = MagicMock()
-    mock_process.poll.return_value = None
-    mock_process.stdout.readline.return_value = json.dumps(
-        {
-            "jsonrpc": "2.0",
-            "result": ["tool1", "tool2", "tool3"],
-            "id": 1,
-        }
-    )
-    mock_popen.return_value = mock_process
-
-    transport = StdioTransport()
-    transport.start("test_command", [])
     tools = transport.list_tools()
 
     assert "tool1" in tools
     assert "tool2" in tools
-    assert "tool3" in tools
 
 
 @patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
-def test_stdio_transport_list_tools_empty(mock_popen):
-    """Test listing tools returns empty list when no tools."""
+def test_stdio_is_alive(mock_popen_class):
+    """Test is_alive returns correct state."""
+    transport = StdioTransport()
+    assert not transport.is_alive()
+
+    # Setup mock process
     mock_process = MagicMock()
-    mock_process.poll.return_value = None
     mock_process.stdout.readline.return_value = json.dumps(
-        {
-            "jsonrpc": "2.0",
-            "result": [],
-            "id": 1,
-        }
+        {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2024-11-05"}}
     )
-    mock_popen.return_value = mock_process
+    mock_process.poll.return_value = None
+    mock_popen_class.return_value = mock_process
+
+    transport.start("python", ["-m", "test_server"])
+    assert transport.is_alive()
+
+    mock_process.poll.return_value = 0  # Process exited
+    assert not transport.is_alive()
+
+
+@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+def test_stdio_stop_terminates_process(mock_popen_class):
+    """Test stop terminates the process."""
+    mock_process = MagicMock()
+    mock_process.stdout.readline.return_value = json.dumps(
+        {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2024-11-05"}}
+    )
+    mock_process.poll.return_value = None
+    mock_popen_class.return_value = mock_process
 
     transport = StdioTransport()
-    transport.start("test_command", [])
+    transport.start("python", ["-m", "test_server"])
+    transport.stop()
+
+    mock_process.terminate.assert_called_once()
+    mock_process.wait.assert_called_once_with(timeout=5)
+    assert transport._initialized is False
+
+
+@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+def test_stdio_stop_kills_process_if_needed(mock_popen_class):
+    """Test stop kills process if terminate times out."""
+    mock_process = MagicMock()
+    mock_process.stdout.readline.return_value = json.dumps(
+        {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2024-11-05"}}
+    )
+    mock_process.poll.return_value = None
+    mock_process.wait.side_effect = [subprocess.TimeoutExpired(cmd="test", timeout=5), None]
+    mock_popen_class.return_value = mock_process
+
+    transport = StdioTransport()
+    transport.start("python", ["-m", "test_server"])
+    transport.stop()
+
+    mock_process.terminate.assert_called_once()
+    mock_process.kill.assert_called_once()
+
+
+@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+def test_stdio_execute_tool_python_literal_parsing(mock_popen_class):
+    """Test tool execution with Python literal fallback parsing."""
+    mock_process = MagicMock()
+    mock_process.poll.return_value = None
+
+    # First call for initialization, second for tool execution with Python literal
+    mock_process.stdout.readline.side_effect = [
+        json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2024-11-05"}}),
+        json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "result": {"content": [{"type": "text", "text": "{'key': 'value'}"}]},
+            }
+        ),
+    ]
+    mock_popen_class.return_value = mock_process
+
+    transport = StdioTransport()
+    transport.start("python", ["-m", "test_server"])
+
+    result = transport.execute_tool("test_tool")
+
+    assert result == {"key": "value"}
+
+
+@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+def test_stdio_execute_tool_empty_content(mock_popen_class):
+    """Test tool execution with empty content returns empty dict."""
+    mock_process = MagicMock()
+    mock_process.poll.return_value = None
+
+    mock_process.stdout.readline.side_effect = [
+        json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2024-11-05"}}),
+        json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "result": {"content": []},
+            }
+        ),
+    ]
+    mock_popen_class.return_value = mock_process
+
+    transport = StdioTransport()
+    transport.start("python", ["-m", "test_server"])
+
+    result = transport.execute_tool("test_tool")
+
+    assert result == {}
+
+
+@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+def test_stdio_list_tools_returns_tool_names(mock_popen_class):
+    """Test list_tools returns list of tool names."""
+    mock_process = MagicMock()
+    mock_process.poll.return_value = None
+
+    mock_process.stdout.readline.side_effect = [
+        json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2024-11-05"}}),
+        json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "result": {
+                    "tools": [
+                        {"name": "get_time", "description": "Get current time"},
+                        {"name": "get_date", "description": "Get current date"},
+                    ]
+                },
+            }
+        ),
+    ]
+    mock_popen_class.return_value = mock_process
+
+    transport = StdioTransport()
+    transport.start("python", ["-m", "test_server"])
+
     tools = transport.list_tools()
 
-    assert tools == []
+    assert len(tools) == 2
+    assert "get_time" in tools
+    assert "get_date" in tools
 
 
 if __name__ == "__main__":
