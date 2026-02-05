@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "uvx",
+      "args": [
+        "workspace/mcp_servers/localtime_mcp"
+      ],
+      "transport": "stdio"
+    }
+  }
+}

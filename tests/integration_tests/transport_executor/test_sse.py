@@ -1,6 +1,6 @@
 """Integration tests for SSETransport using localtime MCP server."""
 
-from agent.mcp.transport_executor.sse import SSETransport
+from asterism.mcp.transport_executor.sse import SSETransport
 
 
 def test_list_tools_success(sse_server_url):

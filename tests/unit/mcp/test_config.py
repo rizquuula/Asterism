@@ -4,10 +4,10 @@ from unittest.mock import patch
 
 import pytest
 
-from agent.mcp.config import MCPConfig
+from asterism.mcp.config import MCPConfig
 
 
-@patch("agent.mcp.config.MCPConfig.load_config")
+@patch("asterism.mcp.config.MCPConfig.load_config")
 def test_load_config(mock_load):
     """Test loading MCP configuration from file."""
     mock_config = {
@@ -29,7 +29,7 @@ def test_load_config(mock_load):
     assert "filesystem" in loaded_config["mcpServers"]
 
 
-@patch("agent.mcp.config.MCPConfig.load_config")
+@patch("asterism.mcp.config.MCPConfig.load_config")
 def test_get_server_metadata(mock_load):
     """Test getting server metadata."""
     mock_config = {
@@ -54,7 +54,7 @@ def test_get_server_metadata(mock_load):
     assert config.get_server_metadata("non_existent") is None
 
 
-@patch("agent.mcp.config.MCPConfig.load_config")
+@patch("asterism.mcp.config.MCPConfig.load_config")
 def test_get_available_servers(mock_load):
     """Test getting list of available servers."""
     mock_config = {"mcpServers": {"filesystem": {}, "code_parser": {}}}
@@ -68,7 +68,7 @@ def test_get_available_servers(mock_load):
     assert len(servers) == 2
 
 
-@patch("agent.mcp.config.MCPConfig.load_config")
+@patch("asterism.mcp.config.MCPConfig.load_config")
 def test_get_enabled_servers(mock_load):
     """Test getting list of enabled servers."""
     mock_config = {"mcpServers": {"filesystem": {"enabled": True}, "code_parser": {"enabled": False}}}

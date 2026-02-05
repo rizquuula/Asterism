@@ -2,8 +2,8 @@
 
 import pytest
 
-from agent.llm.base import BaseLLMProvider
-from agent.llm.openai_provider import OpenAIProvider
+from asterism.llm.base import BaseLLMProvider
+from asterism.llm.openai_provider import OpenAIProvider
 
 
 def test_invoke_simple_prompt(openai_provider: BaseLLMProvider, test_prompt: str):
@@ -18,7 +18,7 @@ def test_invoke_simple_prompt(openai_provider: BaseLLMProvider, test_prompt: str
 
 def test_invoke_with_parameters(openai_provider: BaseLLMProvider):
     """Test invoke with additional parameters."""
-    prompt = "Say 'Hello World' and nothing else."
+    prompt = "Say 'Hello World'."
     response = openai_provider.invoke(
         prompt,
         temperature=0.1,  # Low temperature for consistent output

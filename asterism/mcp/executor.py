@@ -8,7 +8,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
 
-from agent.mcp.transport_executor.base import BaseTransport
+from asterism.mcp.transport_executor.base import BaseTransport
 
 from .config import MCPConfig, get_mcp_config
 from .transport_executor import create_transport

@@ -1,6 +1,6 @@
 """Integration tests for StdioTransport using localtime MCP server."""
 
-from agent.mcp.transport_executor.stdio import StdioTransport
+from asterism.mcp.transport_executor.stdio import StdioTransport
 
 
 def test_list_tools_success(localtime_mcp_path):

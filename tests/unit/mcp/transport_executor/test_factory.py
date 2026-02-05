@@ -2,10 +2,10 @@
 
 import pytest
 
-from agent.mcp.transport_executor import create_transport
-from agent.mcp.transport_executor.http_stream import HTTPStreamTransport
-from agent.mcp.transport_executor.sse import SSETransport
-from agent.mcp.transport_executor.stdio import StdioTransport
+from asterism.mcp.transport_executor import create_transport
+from asterism.mcp.transport_executor.http_stream import HTTPStreamTransport
+from asterism.mcp.transport_executor.sse import SSETransport
+from asterism.mcp.transport_executor.stdio import StdioTransport
 
 
 def test_create_transport_stdio():

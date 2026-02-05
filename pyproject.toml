@@ -1,7 +1,7 @@
 [project]
-name = "ai-agent-boilerplate"
+name = "asterism"
 version = "0.1.0"
-description = "Add your description here"
+description = "Asterism agentic beings"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

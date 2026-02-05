@@ -1,6 +1,6 @@
 """Integration tests for HTTPStreamTransport using localtime MCP server."""
 
-from agent.mcp.transport_executor.http_stream import HTTPStreamTransport
+from asterism.mcp.transport_executor.http_stream import HTTPStreamTransport
 
 
 def test_list_tools_success(http_stream_server_url):

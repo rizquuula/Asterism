@@ -5,8 +5,8 @@ import os
 import pytest
 from pydantic import BaseModel
 
-from agent.llm.base import BaseLLMProvider
-from agent.llm.openai_provider import OpenAIProvider
+from asterism.llm.base import BaseLLMProvider
+from asterism.llm.openai_provider import OpenAIProvider
 
 
 @pytest.fixture

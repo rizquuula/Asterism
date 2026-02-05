@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agent.mcp.transport_executor.stdio import StdioTransport
+from asterism.mcp.transport_executor.stdio import StdioTransport
 
 
 def test_stdio_transport_init():
@@ -17,7 +17,7 @@ def test_stdio_transport_init():
     assert transport._initialized is False
 
 
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+@patch("asterism.mcp.transport_executor.stdio.subprocess.Popen")
 def test_stdio_start_success(mock_popen_class):
     """Test successful start and initialization."""
     # Setup mock process
@@ -44,7 +44,7 @@ def test_stdio_start_success(mock_popen_class):
     assert transport._process is not None
 
 
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+@patch("asterism.mcp.transport_executor.stdio.subprocess.Popen")
 def test_stdio_execute_tool_success(mock_popen_class):
     """Test successful tool execution."""
     # Setup mock process
@@ -72,7 +72,7 @@ def test_stdio_execute_tool_success(mock_popen_class):
     assert result == {"result": "success"}
 
 
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+@patch("asterism.mcp.transport_executor.stdio.subprocess.Popen")
 def test_stdio_list_tools_success(mock_popen_class):
     """Test successful tools listing."""
     # Setup mock process
@@ -101,7 +101,7 @@ def test_stdio_list_tools_success(mock_popen_class):
     assert "tool2" in tools
 
 
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+@patch("asterism.mcp.transport_executor.stdio.subprocess.Popen")
 def test_stdio_is_alive(mock_popen_class):
     """Test is_alive returns correct state."""
     transport = StdioTransport()
@@ -122,7 +122,7 @@ def test_stdio_is_alive(mock_popen_class):
     assert not transport.is_alive()
 
 
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+@patch("asterism.mcp.transport_executor.stdio.subprocess.Popen")
 def test_stdio_stop_terminates_process(mock_popen_class):
     """Test stop terminates the process."""
     mock_process = MagicMock()
@@ -141,7 +141,7 @@ def test_stdio_stop_terminates_process(mock_popen_class):
     assert transport._initialized is False
 
 
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+@patch("asterism.mcp.transport_executor.stdio.subprocess.Popen")
 def test_stdio_stop_kills_process_if_needed(mock_popen_class):
     """Test stop kills process if terminate times out."""
     mock_process = MagicMock()
@@ -160,7 +160,7 @@ def test_stdio_stop_kills_process_if_needed(mock_popen_class):
     mock_process.kill.assert_called_once()
 
 
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+@patch("asterism.mcp.transport_executor.stdio.subprocess.Popen")
 def test_stdio_execute_tool_python_literal_parsing(mock_popen_class):
     """Test tool execution with Python literal fallback parsing."""
     mock_process = MagicMock()
@@ -187,7 +187,7 @@ def test_stdio_execute_tool_python_literal_parsing(mock_popen_class):
     assert result == {"key": "value"}
 
 
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+@patch("asterism.mcp.transport_executor.stdio.subprocess.Popen")
 def test_stdio_execute_tool_empty_content(mock_popen_class):
     """Test tool execution with empty content returns empty dict."""
     mock_process = MagicMock()
@@ -213,7 +213,7 @@ def test_stdio_execute_tool_empty_content(mock_popen_class):
     assert result == {}
 
 
-@patch("agent.mcp.transport_executor.stdio.subprocess.Popen")
+@patch("asterism.mcp.transport_executor.stdio.subprocess.Popen")
 def test_stdio_list_tools_returns_tool_names(mock_popen_class):
     """Test list_tools returns list of tool names."""
     mock_process = MagicMock()

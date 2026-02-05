@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agent.mcp.executor import MCPExecutor, execute_mcp_tool, get_mcp_executor
+from asterism.mcp.executor import MCPExecutor, execute_mcp_tool, get_mcp_executor
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ class TestMCPExecutor:
 
     def test_mcp_executor_initialization_with_default_config(self):
         """Test MCP executor initialization with default config."""
-        with patch("agent.mcp.executor.get_mcp_config") as mock_get_config:
+        with patch("asterism.mcp.executor.get_mcp_config") as mock_get_config:
             mock_config = MagicMock()
             mock_get_config.return_value = mock_config
 
@@ -48,7 +48,7 @@ class TestMCPExecutor:
 
     def test_mcp_executor_initialization_with_custom_config(self):
         """Test MCP executor initialization with custom config path."""
-        with patch("agent.mcp.executor.MCPConfig") as mock_config_class:
+        with patch("asterism.mcp.executor.MCPConfig") as mock_config_class:
             mock_config = MagicMock()
             mock_config_class.return_value = mock_config
 
@@ -60,8 +60,8 @@ class TestMCPExecutor:
 
     def test_execute_tool_valid_server(self, mock_config, mock_transport):
         """Test executing tools on valid servers."""
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
-            with patch("agent.mcp.executor.create_transport", return_value=mock_transport):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
+            with patch("asterism.mcp.executor.create_transport", return_value=mock_transport):
                 executor = MCPExecutor()
 
                 result = executor.execute_tool("filesystem", "list_files")
@@ -78,7 +78,7 @@ class TestMCPExecutor:
         """Test executing tools on invalid servers."""
         mock_config.get_server_metadata.return_value = None
 
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
             executor = MCPExecutor()
 
             result = executor.execute_tool("invalid_server", "list_files")
@@ -91,7 +91,7 @@ class TestMCPExecutor:
         """Test executing tools on disabled servers."""
         mock_config.is_server_enabled.return_value = False
 
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
             executor = MCPExecutor()
 
             result = executor.execute_tool("filesystem", "list_files")
@@ -102,8 +102,8 @@ class TestMCPExecutor:
 
     def test_execute_tool_invalid_tool(self, mock_config, mock_transport):
         """Test executing invalid tools."""
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
-            with patch("agent.mcp.executor.create_transport", return_value=mock_transport):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
+            with patch("asterism.mcp.executor.create_transport", return_value=mock_transport):
                 executor = MCPExecutor()
 
                 # Cache the tools first
@@ -117,8 +117,8 @@ class TestMCPExecutor:
 
     def test_get_available_tools(self, mock_config, mock_transport):
         """Test getting available tools."""
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
-            with patch("agent.mcp.executor.create_transport", return_value=mock_transport):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
+            with patch("asterism.mcp.executor.create_transport", return_value=mock_transport):
                 executor = MCPExecutor()
                 available_tools = executor.get_available_tools()
 
@@ -133,8 +133,8 @@ class TestMCPExecutor:
             None,  # Second server fails
         ]
 
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
-            with patch("agent.mcp.executor.create_transport", side_effect=Exception("Connection failed")):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
+            with patch("asterism.mcp.executor.create_transport", side_effect=Exception("Connection failed")):
                 executor = MCPExecutor()
                 available_tools = executor.get_available_tools()
 
@@ -142,8 +142,8 @@ class TestMCPExecutor:
 
     def test_validate_tool_call(self, mock_config, mock_transport):
         """Test tool call validation."""
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
-            with patch("agent.mcp.executor.create_transport", return_value=mock_transport):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
+            with patch("asterism.mcp.executor.create_transport", return_value=mock_transport):
                 executor = MCPExecutor()
 
                 # Cache the tools first
@@ -159,8 +159,8 @@ class TestMCPExecutor:
 
     def test_shutdown(self, mock_config, mock_transport):
         """Test shutdown cleans up transports."""
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
-            with patch("agent.mcp.executor.create_transport", return_value=mock_transport):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
+            with patch("asterism.mcp.executor.create_transport", return_value=mock_transport):
                 executor = MCPExecutor()
 
                 # Initialize a transport
@@ -174,8 +174,8 @@ class TestMCPExecutor:
 
     def test_execute_tool_with_parameters(self, mock_config, mock_transport):
         """Test tool execution with parameters."""
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
-            with patch("agent.mcp.executor.create_transport", return_value=mock_transport):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
+            with patch("asterism.mcp.executor.create_transport", return_value=mock_transport):
                 executor = MCPExecutor()
 
                 result = executor.execute_tool("filesystem", "list_files", pattern="*.py", directory="/test")
@@ -187,8 +187,8 @@ class TestMCPExecutor:
         """Test error handling when transport fails."""
         mock_transport.execute_tool.side_effect = Exception("Connection lost")
 
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
-            with patch("agent.mcp.executor.create_transport", return_value=mock_transport):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
+            with patch("asterism.mcp.executor.create_transport", return_value=mock_transport):
                 executor = MCPExecutor()
 
                 result = executor.execute_tool("filesystem", "list_files")
@@ -203,12 +203,12 @@ class TestGlobalFunctions:
 
     def test_get_mcp_executor_singleton(self):
         """Test that get_mcp_executor returns a singleton instance."""
-        with patch("agent.mcp.executor.MCPExecutor") as mock_executor_class:
+        with patch("asterism.mcp.executor.MCPExecutor") as mock_executor_class:
             mock_instance = MagicMock()
             mock_executor_class.return_value = mock_instance
 
             # Reset the global instance
-            import agent.mcp.executor as executor_module
+            import asterism.mcp.executor as executor_module
 
             executor_module._mcp_executor = None
 
@@ -220,10 +220,10 @@ class TestGlobalFunctions:
 
     def test_execute_mcp_tool_function(self, mock_config, mock_transport):
         """Test the standalone execute_mcp_tool function."""
-        with patch("agent.mcp.executor.get_mcp_config", return_value=mock_config):
-            with patch("agent.mcp.executor.create_transport", return_value=mock_transport):
+        with patch("asterism.mcp.executor.get_mcp_config", return_value=mock_config):
+            with patch("asterism.mcp.executor.create_transport", return_value=mock_transport):
                 # Reset the global instance to ensure fresh executor
-                import agent.mcp.executor as executor_module
+                import asterism.mcp.executor as executor_module
 
                 executor_module._mcp_executor = None
 

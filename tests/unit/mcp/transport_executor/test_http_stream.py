@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agent.mcp.transport_executor.http_stream import HTTPStreamTransport
+from asterism.mcp.transport_executor.http_stream import HTTPStreamTransport
 
 
 def test_http_stream_transport_init():
@@ -18,7 +18,7 @@ def test_http_stream_transport_init():
     assert transport._session_id is None
 
 
-@patch("agent.mcp.transport_executor.http_stream.requests.Session")
+@patch("asterism.mcp.transport_executor.http_stream.requests.Session")
 def test_http_stream_start_success(mock_session_class):
     """Test successful start and initialization."""
     # Setup mock session
@@ -45,7 +45,7 @@ def test_http_stream_start_success(mock_session_class):
     assert transport._session_id == "test-session-123"
 
 
-@patch("agent.mcp.transport_executor.http_stream.requests.Session")
+@patch("asterism.mcp.transport_executor.http_stream.requests.Session")
 def test_http_stream_start_without_args_raises(mock_session_class):
     """Test start raises ValueError when args is empty."""
     transport = HTTPStreamTransport()
@@ -53,7 +53,7 @@ def test_http_stream_start_without_args_raises(mock_session_class):
         transport.start("http", [])
 
 
-@patch("agent.mcp.transport_executor.http_stream.requests.Session")
+@patch("asterism.mcp.transport_executor.http_stream.requests.Session")
 def test_http_stream_execute_tool_success(mock_session_class):
     """Test successful tool execution."""
     # Setup mock session
@@ -95,7 +95,7 @@ def test_http_stream_execute_tool_success(mock_session_class):
     assert result["result"] == {"result": "success"}
 
 
-@patch("agent.mcp.transport_executor.http_stream.requests.Session")
+@patch("asterism.mcp.transport_executor.http_stream.requests.Session")
 def test_http_stream_list_tools_success(mock_session_class):
     """Test successful tools listing."""
     # Setup mock session
@@ -137,7 +137,7 @@ def test_http_stream_list_tools_success(mock_session_class):
     assert "tool2" in tools
 
 
-@patch("agent.mcp.transport_executor.http_stream.requests.Session")
+@patch("asterism.mcp.transport_executor.http_stream.requests.Session")
 def test_http_stream_is_alive(mock_session_class):
     """Test is_alive returns correct state."""
     transport = HTTPStreamTransport()
@@ -165,7 +165,7 @@ def test_http_stream_is_alive(mock_session_class):
     assert not transport.is_alive()
 
 
-@patch("agent.mcp.transport_executor.http_stream.requests.Session")
+@patch("asterism.mcp.transport_executor.http_stream.requests.Session")
 def test_http_stream_stop_closes_session(mock_session_class):
     """Test stop closes the session."""
     mock_session = MagicMock()
@@ -192,7 +192,7 @@ def test_http_stream_stop_closes_session(mock_session_class):
     assert transport._initialized is False
 
 
-@patch("agent.mcp.transport_executor.http_stream.requests.Session")
+@patch("asterism.mcp.transport_executor.http_stream.requests.Session")
 def test_http_stream_execute_tool_non_json_response(mock_session_class):
     """Test tool execution with non-JSON response returns text."""
     mock_session = MagicMock()
@@ -233,7 +233,7 @@ def test_http_stream_execute_tool_non_json_response(mock_session_class):
     assert result["result"] == {"text": "plain text result"}
 
 
-@patch("agent.mcp.transport_executor.http_stream.requests.Session")
+@patch("asterism.mcp.transport_executor.http_stream.requests.Session")
 def test_http_stream_execute_tool_empty_content(mock_session_class):
     """Test tool execution with empty content."""
     mock_session = MagicMock()
@@ -272,7 +272,7 @@ def test_http_stream_execute_tool_empty_content(mock_session_class):
     assert result["result"] == {}
 
 
-@patch("agent.mcp.transport_executor.http_stream.requests.Session")
+@patch("asterism.mcp.transport_executor.http_stream.requests.Session")
 def test_http_stream_list_tools_not_initialized_returns_empty(mock_session_class):
     """Test list_tools returns empty list when not initialized."""
     mock_session = MagicMock()

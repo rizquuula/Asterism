@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from agent.mcp.transport_executor.base import BaseTransport
+from asterism.mcp.transport_executor.base import BaseTransport
 
 
 def test_base_transport_cannot_be_instantiated():
@@ -37,7 +37,7 @@ def test_base_transport_partial_implementation():
         PartialTransport()
 
 
-@patch("agent.mcp.transport_executor.base.BaseTransport.__abstractmethods__", set())
+@patch("asterism.mcp.transport_executor.base.BaseTransport.__abstractmethods__", set())
 def test_base_transport_method_signatures():
     """Test that BaseTransport defines correct method signatures."""
     # Create a concrete implementation for testing signatures
