@@ -169,6 +169,23 @@ class StdioTransport(BaseTransport):
         tools = response.get("result", {}).get("tools", [])
         return [tool["name"] for tool in tools]
 
+    def get_tool_schemas(self) -> list[dict[str, Any]]:
+        """Get detailed tool information including schemas.
+
+        Returns:
+            List of tool schema dictionaries with name, description, and inputSchema.
+        """
+        if not self._initialized:
+            raise RuntimeError("MCP server not initialized")
+
+        response = self._send_request("tools/list")
+
+        if "error" in response:
+            raise RuntimeError(f"Failed to list tools: {response['error']}")
+
+        tools = response.get("result", {}).get("tools", [])
+        return tools
+
     def is_alive(self) -> bool:
         """Check if server process is running."""
         return self._process is not None and self._process.poll() is None

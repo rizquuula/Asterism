@@ -107,11 +107,12 @@ class Agent:
         return self._graph
 
     def _make_planner_node(self):
-        """Create planner node with LLM dependency."""
+        """Create planner node with LLM and MCP dependencies."""
         llm = self.llm
+        mcp_executor = self.mcp_executor
 
         def _planner_node(state: AgentState) -> AgentState:
-            return planner_node(llm, state)
+            return planner_node(llm, mcp_executor, state)
 
         return _planner_node
 

@@ -43,6 +43,18 @@ class BaseTransport(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def get_tool_schemas(self) -> list[dict[str, Any]]:
+        """Get detailed information about available tools.
+
+        Returns:
+            List of tool schema dictionaries. Each schema contains:
+                - name: Tool name
+                - description: Tool description
+                - inputSchema: JSON Schema for tool arguments
+        """
+        pass
+
+    @abc.abstractmethod
     def is_alive(self) -> bool:
         """Check if the server connection/process is alive.
 

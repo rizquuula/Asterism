@@ -289,6 +289,26 @@ class SSETransport(BaseTransport):
         tools = result.get("tools", [])
         return [tool["name"] for tool in tools]
 
+    def get_tool_schemas(self) -> list[dict[str, Any]]:
+        """Get detailed tool information including schemas.
+
+        Returns:
+            List of tool schema dictionaries with name, description, and inputSchema.
+        """
+        if not self.is_alive() or not self._initialized:
+            return []
+
+        self._request_id += 1
+        request = self._build_list_tools_request()
+
+        response = self._send_request(request)
+
+        if "error" in response:
+            return []
+
+        result = response.get("result", {})
+        return result.get("tools", [])
+
     def is_alive(self) -> bool:
         """Check if SSE connection is active."""
         return self._session is not None and self._base_url is not None

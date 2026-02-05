@@ -31,6 +31,7 @@ class MCPExecutor:
             self.config = get_mcp_config()
         self.transports: dict[str, BaseTransport | None] = {}
         self.tool_cache: dict[str, list] = {}
+        self.tool_schema_cache: dict[str, list[dict[str, Any]]] = {}
 
     def _get_transport(self, server_name: str) -> BaseTransport:
         """Get or create transport for a server."""
@@ -125,6 +126,34 @@ class MCPExecutor:
 
         return available_tools
 
+    def get_tool_schemas(self) -> dict[str, list[dict[str, Any]]]:
+        """
+        Get detailed tool information for all enabled servers.
+
+        Returns:
+            Dictionary mapping server names to lists of tool schema objects.
+            Each tool object contains: name, description, inputSchema.
+        """
+        tool_schemas = {}
+        enabled_servers = self.config.get_enabled_servers()
+
+        for server_name in enabled_servers:
+            # Check if we already have schemas cached
+            if server_name in self.tool_schema_cache:
+                tool_schemas[server_name] = self.tool_schema_cache[server_name]
+                continue
+
+            # Initialize transport to get tool schemas
+            try:
+                transport = self._get_transport(server_name)
+                schemas = transport.get_tool_schemas()
+                self.tool_schema_cache[server_name] = schemas
+                tool_schemas[server_name] = schemas
+            except Exception:
+                tool_schemas[server_name] = []
+
+        return tool_schemas
+
     def validate_tool_call(self, server_name: str, tool_name: str) -> bool:
         """
         Validate if a tool call is valid.
@@ -148,6 +177,7 @@ class MCPExecutor:
                 transport.stop()
         self.transports = {}
         self.tool_cache = {}
+        self.tool_schema_cache = {}
 
 
 # Global MCP executor instance
