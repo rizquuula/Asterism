@@ -3,38 +3,144 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from langchain_core.messages import BaseMessage
+
+from asterism.core.prompt_loader import SystemPromptLoader
+
 
 class BaseLLMProvider(ABC):
-    """Abstract base class for LLM providers."""
+    """Abstract base class for LLM providers.
 
-    @abstractmethod
-    def invoke(self, prompt: str, **kwargs) -> str:
+    This class provides a message-based interface for LLM interactions,
+    with built-in support for loading system prompts from SOUL.md and
+    AGENT.md files. System prompts are loaded fresh on each call to
+    ensure runtime updates are reflected.
+
+    Attributes:
+        prompt_loader: Optional SystemPromptLoader for loading SOUL.md and AGENT.md.
+                      If None, no additional system prompts are prepended.
+    """
+
+    def __init__(
+        self,
+        prompt_loader: SystemPromptLoader | None = None,
+    ):
         """
-        Invoke the LLM with a text prompt.
+        Initialize the LLM provider.
 
         Args:
-            prompt: The text prompt to send to the LLM
-            **kwargs: Additional provider-specific parameters
+            prompt_loader: Optional SystemPromptLoader instance for loading
+                          SOUL.md and AGENT.md. If provided, the content from
+                          these files will be prepended to all LLM calls as
+                          a SystemMessage. If None, no additional system
+                          prompts are added.
+        """
+        self.prompt_loader = prompt_loader
+
+    @abstractmethod
+    def invoke(
+        self,
+        prompt: str | list[BaseMessage],
+        **kwargs,
+    ) -> str:
+        """
+        Invoke the LLM with a text prompt or message list.
+
+        If a string is provided, it will be converted to a HumanMessage.
+        If a prompt_loader is configured, SOUL.md and AGENT.md content
+        will be prepended as a SystemMessage.
+
+        Args:
+            prompt: Either a text prompt (str) or a list of messages.
+                    When a string is provided, it will be wrapped as a HumanMessage.
+            **kwargs: Additional provider-specific parameters.
+                      Common parameters include:
+                      - system_message: Additional system prompt to prepend
+                      - temperature: Generation temperature
+                      - max_tokens: Maximum tokens to generate
 
         Returns:
-            The LLM's text response
+            The LLM's text response.
         """
         pass
 
     @abstractmethod
-    def invoke_structured(self, prompt: str, schema: type, **kwargs) -> Any:
+    def invoke_structured(
+        self,
+        prompt: str | list[BaseMessage],
+        schema: type,
+        **kwargs,
+    ) -> Any:
         """
         Invoke the LLM with a structured output request.
 
+        If a string is provided, it will be converted to a HumanMessage.
+        If a prompt_loader is configured, SOUL.md and AGENT.md content
+        will be prepended as a SystemMessage.
+
         Args:
-            prompt: The text prompt to send to the LLM
-            schema: Pydantic model or type for structured output
-            **kwargs: Additional provider-specific parameters
+            prompt: Either a text prompt (str) or a list of messages.
+            schema: Pydantic model or type for structured output.
+            **kwargs: Additional provider-specific parameters.
 
         Returns:
-            Parsed structured output matching the schema
+            Parsed structured output matching the schema.
         """
         pass
+
+    def _build_messages(
+        self,
+        prompt: str | list[BaseMessage],
+        **kwargs,
+    ) -> list[BaseMessage]:
+        """
+        Build the full message list with system prompts prepended.
+
+        This method:
+        1. Loads SOUL.md and AGENT.md if prompt_loader is configured
+        2. Wraps string prompts as HumanMessage
+        3. Prepends the loaded system prompt
+        4. Appends any additional system message from kwargs
+
+        Args:
+            prompt: Either a text prompt or list of messages.
+            **kwargs: May contain 'system_message' for additional system content.
+
+        Returns:
+            List of messages with system prompts prepended.
+        """
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        # Load system prompts if loader is configured
+        system_messages: list[BaseMessage] = []
+        if self.prompt_loader is not None:
+            system_content = self.prompt_loader.load()
+            system_messages.append(SystemMessage(content=system_content))
+
+        # Add any additional system message from kwargs
+        additional_system = kwargs.pop("system_message", None)
+        if additional_system:
+            if isinstance(additional_system, str):
+                system_messages.append(SystemMessage(content=additional_system))
+            elif isinstance(additional_system, SystemMessage):
+                system_messages.append(additional_system)
+            elif isinstance(additional_system, list):
+                for msg in additional_system:
+                    if isinstance(msg, str):
+                        system_messages.append(SystemMessage(content=msg))
+                    elif isinstance(msg, BaseMessage):
+                        system_messages.append(msg)
+
+        # Convert string prompt to HumanMessage if needed
+        if isinstance(prompt, str):
+            user_messages: list[BaseMessage] = [HumanMessage(content=prompt)]
+        elif isinstance(prompt, list):
+            user_messages = prompt
+        else:
+            user_messages = [prompt]
+
+        # Combine: system messages first, then user messages
+        return system_messages + user_messages
 
     @property
     @abstractmethod

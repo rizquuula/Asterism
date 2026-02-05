@@ -1,13 +1,32 @@
 """Finalizer node for generating the final response."""
 
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from asterism.agent.models import AgentResponse
 from asterism.agent.state import AgentState
 from asterism.llm.base import BaseLLMProvider
+
+# Node-specific system prompt - this is combined with SOUL.md + AGENT.md
+FINALIZER_SYSTEM_PROMPT = """You are a helpful assistant that synthesizes task execution results
+into a clear, concise response for the user.
+
+Provide a natural language answer that:
+- Directly addresses the user's original request
+- Summarizes what was accomplished
+- Highlights key findings or outcomes
+- Is friendly and professional
+
+Do not include technical details like task IDs or execution traces in the message - those are provided separately."""
 
 
 def finalizer_node(llm: BaseLLMProvider, state: AgentState) -> AgentState:
     """
     Generate final response based on execution results.
+
+    The LLM will receive:
+    1. SOUL.md + AGENT.md as a SystemMessage (loaded fresh from disk if configured)
+    2. Node-specific response synthesis instructions as a SystemMessage
+    3. User request and execution results as a HumanMessage
 
     Args:
         llm: The LLM provider for synthesizing the response.
@@ -49,17 +68,6 @@ def finalizer_node(llm: BaseLLMProvider, state: AgentState) -> AgentState:
             # Summarize results for LLM
             results_summary = "\n".join(f"Task {r.task_id}: {r.result}" for r in execution_results)
 
-            system_prompt = """You are a helpful assistant that synthesizes task execution results
-into a clear, concise response for the user.
-
-Provide a natural language answer that:
-- Directly addresses the user's original request
-- Summarizes what was accomplished
-- Highlights key findings or outcomes
-- Is friendly and professional
-
-Do not include technical details like task IDs or execution traces in the message - those are provided separately."""
-
             user_prompt = f"""Original user request: {_get_user_request(state)}
 
 Execution results:
@@ -67,7 +75,12 @@ Execution results:
 
 Create a response for the user."""
 
-            message = llm.invoke(user_prompt, system_message=system_prompt)
+            # Use message list - the provider will auto-prepend SOUL.md + AGENT.md
+            messages = [
+                SystemMessage(content=FINALIZER_SYSTEM_PROMPT),
+                HumanMessage(content=user_prompt),
+            ]
+            message = llm.invoke(messages)
 
             response = AgentResponse(
                 message=message,
@@ -94,8 +107,6 @@ def _get_user_request(state: AgentState) -> str:
     messages = state.get("messages", [])
     if messages:
         # Find the first human message
-        from langchain_core.messages import HumanMessage
-
         for msg in messages:
             if isinstance(msg, HumanMessage):
                 return msg.content

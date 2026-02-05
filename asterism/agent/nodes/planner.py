@@ -1,6 +1,6 @@
 """Planner node for creating and updating task plans."""
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from asterism.agent.models import Plan
 from asterism.agent.state import AgentState
@@ -12,34 +12,8 @@ def _generate_task_id(index: int, description: str) -> str:
     return f"task_{index}_{description.lower().replace(' ', '_')[:30]}"
 
 
-def planner_node(llm: BaseLLMProvider, state: AgentState) -> AgentState:
-    """
-    Create or update a plan based on the user request and execution history.
-
-    Args:
-        llm: The LLM provider to use for planning.
-        state: Current agent state.
-
-    Returns:
-        Updated state with a new or updated plan.
-    """
-    # Build context from messages and execution results
-    user_message = ""
-    if state["messages"]:
-        # Get the latest user message
-        for msg in reversed(state["messages"]):
-            if isinstance(msg, HumanMessage):
-                user_message = msg.content
-                break
-
-    execution_context = ""
-    if state["execution_results"]:
-        execution_context = "\n\nExecution History:\n"
-        for result in state["execution_results"]:
-            status = "✓" if result.success else "✗"
-            execution_context += f"- {status} {result.task_id}: {result.result if result.success else result.error}\n"
-
-    system_prompt = """You are a task planning agent. Create a detailed plan to accomplish the user's request.
+# Node-specific system prompt - this is combined with SOUL.md + AGENT.md
+PLANNER_SYSTEM_PROMPT = """You are a task planning agent. Create a detailed plan to accomplish the user's request.
 
 You have access to MCP tools. When planning tasks, specify tool calls in format:
 - tool_call: "server_name:tool_name"
@@ -68,6 +42,39 @@ Guidelines:
 - Include verification tasks if needed
 """
 
+
+def planner_node(llm: BaseLLMProvider, state: AgentState) -> AgentState:
+    """
+    Create or update a plan based on the user request and execution history.
+
+    The LLM will receive:
+    1. SOUL.md + AGENT.md as a SystemMessage (loaded fresh from disk if configured)
+    2. Node-specific planning instructions as a SystemMessage
+    3. User request and execution context as a HumanMessage
+
+    Args:
+        llm: The LLM provider to use for planning.
+        state: Current agent state.
+
+    Returns:
+        Updated state with a new or updated plan.
+    """
+    # Build context from messages and execution results
+    user_message = ""
+    if state["messages"]:
+        # Get the latest user message
+        for msg in reversed(state["messages"]):
+            if isinstance(msg, HumanMessage):
+                user_message = msg.content
+                break
+
+    execution_context = ""
+    if state["execution_results"]:
+        execution_context = "\n\nExecution History:\n"
+        for result in state["execution_results"]:
+            status = "✓" if result.success else "✗"
+            execution_context += f"- {status} {result.task_id}: {result.result if result.success else result.error}\n"
+
     user_prompt = f"""User Request: {user_message}
 
 {execution_context if execution_context else ""}
@@ -75,8 +82,13 @@ Guidelines:
 Create a plan to accomplish this request."""
 
     try:
-        # Use structured output to get the plan
-        plan = llm.invoke_structured(user_prompt, Plan, system_message=system_prompt)
+        # Use structured output with message list
+        # The provider will auto-prepend SOUL.md + AGENT.md as a SystemMessage
+        messages = [
+            SystemMessage(content=PLANNER_SYSTEM_PROMPT),
+            HumanMessage(content=user_prompt),
+        ]
+        plan = llm.invoke_structured(messages, Plan)
 
         # Ensure all tasks have IDs
         for i, task in enumerate(plan.tasks):
