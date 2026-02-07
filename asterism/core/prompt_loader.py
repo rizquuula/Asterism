@@ -108,13 +108,19 @@ class SystemPromptLoader:
 
 {soul_content}
 
-# AGENT (Identity & Capabilities)
+# AGENT (Logic and Capabilities)
 
 {agent_content}
 
-# PERSONALITY
+# PERSONALITY (Identity and Behaviour)
 
 {agent_personality}
+
+# WORKSPACE FILES
+
+workspace/SOUL.md
+workspace/AGENT.md
+workspace/PERSONALITY.md
 """
         return combined
 

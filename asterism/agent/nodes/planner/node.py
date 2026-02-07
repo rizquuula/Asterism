@@ -68,7 +68,9 @@ When creating tasks with tool calls:
 
 {execution_context if execution_context else ""}
 
-Create a plan to accomplish this request using the available tools."""
+Create a plan to accomplish this request using the available tools.
+
+JSON OUTPUT:"""
 
     try:
         # Use structured output with message list
