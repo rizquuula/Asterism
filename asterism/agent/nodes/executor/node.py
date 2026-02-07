@@ -68,8 +68,26 @@ def executor_node(llm: BaseLLMProvider, mcp_executor: MCPExecutor, state: AgentS
             if not task.description:
                 raise ValueError("Task description is required for LLM-only tasks")
 
+            # Build context from dependent task results
+            execution_context = ""
+            if task.depends_on:
+                execution_results = state.get("execution_results", [])
+                dependent_results = [r for r in execution_results if r.task_id in task.depends_on]
+                if dependent_results:
+                    execution_context = "\n\nContext from previous tasks:\n"
+                    for result in dependent_results:
+                        if result.success:
+                            execution_context += f"\n--- Result from task '{result.task_id}' ---\n{result.result}\n"
+                        else:
+                            execution_context += f"\n--- Task '{result.task_id}' failed: {result.error}\n"
+
+            # Build full prompt with context
+            full_prompt = task.description
+            if execution_context:
+                full_prompt = f"{task.description}\n\n{execution_context}"
+
             # Use LLM to process with usage tracking
-            llm_response = llm.invoke_with_usage(task.description)
+            llm_response = llm.invoke_with_usage(full_prompt)
             result.success = True
             result.result = llm_response.content
 
