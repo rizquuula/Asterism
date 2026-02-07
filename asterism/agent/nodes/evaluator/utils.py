@@ -1,9 +1,12 @@
 """Utility functions for the evaluator node."""
 
-from langchain_core.messages import HumanMessage
+from typing import Any
 
-from asterism.agent.models import EvaluationDecision
+from langchain_core.messages import HumanMessage, SystemMessage
+
+from asterism.agent.models import EvaluationDecision, LLMUsage, Task, TaskInputResolverResult
 from asterism.agent.state import AgentState
+from asterism.llm.base import BaseLLMProvider
 
 
 def get_user_request(state: AgentState) -> str:
@@ -114,3 +117,119 @@ def fallback_decision(state: AgentState) -> EvaluationDecision:
         return EvaluationDecision.REPLAN
 
     return EvaluationDecision.CONTINUE
+
+
+def build_task_resolver_prompt(
+    next_task: Task,
+    execution_results: list,
+    user_request: str,
+) -> str:
+    """Build prompt for resolving task inputs based on previous results."""
+    # Format previous results
+    results_context = ""
+    for i, result in enumerate(execution_results):
+        status = "✓" if result.success else "✗"
+        result_str = str(result.result) if result.result else "None"
+        if len(result_str) > 500:
+            result_str = result_str[:500] + "... [truncated]"
+        results_context += f"\nTask {i + 1} ({result.task_id}): {status}\nResult: {result_str}\n"
+
+    current_input = next_task.tool_input or {}
+
+    return f"""=== USER REQUEST ===
+{user_request}
+
+=== EXECUTION HISTORY ===
+{results_context}
+
+=== NEXT TASK TO RESOLVE ===
+Task ID: {next_task.id}
+Description: {next_task.description}
+Tool: {next_task.tool_call}
+Current tool_input: {current_input}
+
+=== TASK ===
+Analyze the execution history and update the tool_input for the next task.
+
+The previous task results may contain information needed for this task (e.g., file paths, IDs, search results).
+
+Instructions:
+1. Review the execution history to find relevant information
+2. Update the tool_input with actual values from previous results
+3. Return ONLY a JSON object with the updated tool_input fields
+
+Example:
+If a search returned "/path/to/file.txt", and the next task needs to read it:
+Current: {{"path": "file.txt"}}
+Updated: {{"path": "/path/to/file.txt"}}
+
+Return format:
+{{"updated_tool_input": {{...}}}}
+
+If no updates needed, return: {{"updated_tool_input": null}}"""
+
+
+def resolve_next_task_inputs(
+    llm: BaseLLMProvider,
+    next_task: Task,
+    state: AgentState,
+) -> tuple[dict[str, Any] | None, LLMUsage | None]:
+    """
+    Resolve task inputs by analyzing previous execution results using LLM.
+
+    Args:
+        llm: The LLM provider for resolution.
+        next_task: The task whose inputs need to be resolved.
+        state: Current agent state with execution history.
+
+    Returns:
+        Tuple of (updated_tool_input or None, LLMUsage or None).
+    """
+    execution_results = state.get("execution_results", [])
+    if not execution_results:
+        return None, None
+
+    user_request = get_user_request(state)
+
+    # Build resolver prompt
+    prompt = build_task_resolver_prompt(next_task, execution_results, user_request)
+
+    try:
+        # Use LLM to resolve inputs
+        messages = [
+            SystemMessage(
+                content=(
+                    "You are a task input resolver. "
+                    "Extract information from previous results to update task inputs. "
+                    "Return only valid JSON."
+                )
+            ),
+            HumanMessage(content=prompt),
+        ]
+
+        response = llm.invoke_structured(
+            messages,
+            schema=TaskInputResolverResult,
+        )
+
+        # Track LLM usage
+        usage = LLMUsage(
+            prompt_tokens=response.prompt_tokens,
+            completion_tokens=response.completion_tokens,
+            total_tokens=response.total_tokens,
+            model=llm.model,
+            node_name="evaluator_node_task_resolver",
+        )
+
+        # Parse response
+        result = response.parsed
+        if isinstance(result, TaskInputResolverResult):
+            updated_input = result.updated_tool_input
+            if updated_input is not None:
+                return updated_input, usage
+
+        return None, usage
+
+    except Exception:
+        # If resolution fails, return None to use original inputs
+        return None, None

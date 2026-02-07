@@ -90,3 +90,12 @@ class AgentResponse(BaseModel):
     total_usage: UsageSummary = Field(
         default_factory=UsageSummary, description="Total LLM token usage across all nodes"
     )
+
+
+class TaskInputResolverResult(BaseModel):
+    """Result from the task input resolver."""
+
+    updated_tool_input: dict[str, Any] | None = Field(
+        default=None,
+        description="Updated tool_input with resolved values from previous results, or null if no updates needed",
+    )

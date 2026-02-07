@@ -21,7 +21,7 @@ class BaseTransport(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def execute_tool(self, tool_name: str, **kwargs: Any) -> dict[str, Any]:
+    def execute_tool(self, tool_name: str, **kwargs: Any) -> str | dict[str, Any]:
         """Execute a tool on the MCP server.
 
         Args:

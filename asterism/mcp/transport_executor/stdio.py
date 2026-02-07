@@ -105,7 +105,7 @@ class StdioTransport(BaseTransport):
         except Exception as e:
             raise RuntimeError(f"Request failed: {str(e)}") from e
 
-    def execute_tool(self, tool_name: str, **kwargs: Any) -> dict[str, Any]:
+    def execute_tool(self, tool_name: str, **kwargs: Any) -> str | dict[str, Any]:
         """Execute a tool via MCP protocol over stdio with robust parsing."""
         if not self._initialized:
             raise RuntimeError("MCP server not initialized")
@@ -138,7 +138,7 @@ class StdioTransport(BaseTransport):
                 text += item.get("text", "")
         return text
 
-    def _parse_tool_output(self, text: str) -> dict[str, Any]:
+    def _parse_tool_output(self, text: str) -> str | dict[str, Any]:
         """Parse tool output text into a dictionary."""
         try:
             # Try standard JSON first
@@ -149,9 +149,7 @@ class StdioTransport(BaseTransport):
                 data = ast.literal_eval(text)
             except (ValueError, SyntaxError):
                 if isinstance(text, str):
-                    data = {
-                        "result": text
-                    }
+                    data = text
                 else:
                     raise RuntimeError(f"Could not parse tool output: {text}")
 

@@ -1,6 +1,16 @@
 """Pydantic models for the agent framework."""
 
-from .schemas import AgentResponse, EvaluationDecision, EvaluationResult, LLMUsage, Plan, Task, TaskResult, UsageSummary
+from .schemas import (
+    AgentResponse,
+    EvaluationDecision,
+    EvaluationResult,
+    LLMUsage,
+    Plan,
+    Task,
+    TaskInputResolverResult,
+    TaskResult,
+    UsageSummary,
+)
 
 __all__ = [
     "Task",
@@ -11,4 +21,5 @@ __all__ = [
     "AgentResponse",
     "LLMUsage",
     "UsageSummary",
+    "TaskInputResolverResult",
 ]

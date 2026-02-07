@@ -9,7 +9,7 @@ from asterism.agent.state import AgentState
 from asterism.llm.base import BaseLLMProvider
 
 from .prompts import EVALUATOR_SYSTEM_PROMPT
-from .utils import build_evaluator_prompt, fallback_decision
+from .utils import build_evaluator_prompt, fallback_decision, resolve_next_task_inputs
 
 
 def evaluator_node(llm: BaseLLMProvider, state: AgentState) -> AgentState:
@@ -62,6 +62,22 @@ def evaluator_node(llm: BaseLLMProvider, state: AgentState) -> AgentState:
             if evaluation.suggested_changes:
                 replan_context = f"Previous execution failed. Suggested changes: {evaluation.suggested_changes}"
                 new_state["messages"] = state.get("messages", []) + [AIMessage(content=f"[Evaluator] {replan_context}")]
+
+        # If continuing, resolve next task inputs based on previous results
+        if evaluation.decision == EvaluationDecision.CONTINUE:
+            plan = new_state.get("plan")
+            current_index = new_state.get("current_task_index", 0)
+            if plan and current_index < len(plan.tasks):
+                next_task = plan.tasks[current_index]
+                # Only resolve if task has a tool call
+                if next_task.tool_call:
+                    resolved_input, resolver_usage = resolve_next_task_inputs(llm, next_task, new_state)
+                    if resolved_input is not None:
+                        # Update the task's tool_input with resolved values
+                        next_task.tool_input = resolved_input
+                    if resolver_usage:
+                        # Track resolver LLM usage
+                        new_state["llm_usage"] = new_state.get("llm_usage", []) + [resolver_usage]
 
         return new_state
 
