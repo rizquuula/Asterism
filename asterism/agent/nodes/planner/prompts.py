@@ -29,4 +29,10 @@ Guidelines:
 - Use available MCP tools when appropriate
 - Include verification tasks if needed
 - Make sure to use full path for file operation
+
+CRITICAL: For file editing tasks:
+1. ALWAYS use filesystem MCP tools (filesystem:read_file, filesystem:write_file) for file operations
+2. First read the file content with filesystem:read_file
+3. Then use filesystem:write_file to save changes - do NOT use LLM-only tasks for editing
+4. LLM-only tasks should only be used for analysis when data is already available in context
 """

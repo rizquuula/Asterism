@@ -14,7 +14,7 @@ class StdioTransport(BaseTransport):
         self._request_id = 0
         self._initialized = False
 
-    def start(self, command: str, args: list[str]) -> None:
+    def start(self, command: str, args: list[str], cwd: str | None = None) -> None:
         """Start the MCP server process."""
         try:
             self._process = subprocess.Popen(
@@ -25,6 +25,7 @@ class StdioTransport(BaseTransport):
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
+                cwd=cwd,
             )
             # Perform MCP initialization handshake
             self._initialize()

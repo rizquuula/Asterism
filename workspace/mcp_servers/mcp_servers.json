@@ -3,7 +3,7 @@
     "localtime_mcp": {
       "command": "uvx",
       "args": [
-        "workspace/mcp_servers/localtime_mcp"
+        "mcp_servers/localtime_mcp"
       ],
       "transport": "stdio"
     },
@@ -12,14 +12,7 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/Users/rizquuula/Playground/Asterism"
-      ]
-    },
-    "shell": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-shell"
+        "."
       ]
     }
   }

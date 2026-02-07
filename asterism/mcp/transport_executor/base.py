@@ -6,12 +6,13 @@ class BaseTransport(abc.ABC):
     """Abstract base class for MCP server transports."""
 
     @abc.abstractmethod
-    def start(self, command: str, args: list[str]) -> None:
+    def start(self, command: str, args: list[str], cwd: str | None = None) -> None:
         """Start the server process/connection.
 
         Args:
             command: The command to execute
             args: List of arguments for the command
+            cwd: Working directory for the process (optional)
         """
         pass
 

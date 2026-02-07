@@ -4,6 +4,7 @@ This module provides a dynamic interface for executing MCP tools based on
 configuration, replacing the hardcoded implementations in the executor node.
 """
 
+import logging
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
@@ -32,6 +33,8 @@ class MCPExecutor:
         self.transports: dict[str, BaseTransport | None] = {}
         self.tool_cache: dict[str, list] = {}
         self.tool_schema_cache: dict[str, list[dict[str, Any]]] = {}
+        
+        self._log = logging.getLogger(self.__class__.__name__)
 
     def _get_transport(self, server_name: str) -> BaseTransport:
         """Get or create transport for a server."""
@@ -41,7 +44,7 @@ class MCPExecutor:
                 raise ValueError(f"No metadata found for server: {server_name}")
 
             transport = create_transport(metadata["transport"])
-            transport.start(metadata["command"], metadata["args"])
+            transport.start(metadata["command"], metadata["args"], metadata.get("cwd"))
             self.transports[server_name] = transport
 
             # Cache tools for this server
@@ -149,7 +152,8 @@ class MCPExecutor:
                 schemas = transport.get_tool_schemas()
                 self.tool_schema_cache[server_name] = schemas
                 tool_schemas[server_name] = schemas
-            except Exception:
+            except Exception as e:
+                self._log.error(f"Fail to get tool schemes: {e}")
                 tool_schemas[server_name] = []
 
         return tool_schemas
