@@ -148,7 +148,12 @@ class StdioTransport(BaseTransport):
                 # Fallback to Python literal parsing if the tool sent single quotes
                 data = ast.literal_eval(text)
             except (ValueError, SyntaxError):
-                raise RuntimeError(f"Could not parse tool output: {text}")
+                if isinstance(text, str):
+                    data = {
+                        "result": text
+                    }
+                else:
+                    raise RuntimeError(f"Could not parse tool output: {text}")
 
         return data
 

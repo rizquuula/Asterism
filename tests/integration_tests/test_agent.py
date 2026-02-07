@@ -31,7 +31,7 @@ def test_agent_invoke():
 
     response = agent.invoke(
         session_id="test-session",
-        user_message="Sekarang jam berapa ya?",
+        user_message="Can you read what inside SOUL.md?",
     )
 
     agent.close()

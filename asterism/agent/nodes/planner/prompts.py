@@ -28,4 +28,5 @@ Guidelines:
 - Break complex tasks into smaller steps
 - Use available MCP tools when appropriate
 - Include verification tasks if needed
+- Make sure to use full path for file operation
 """
