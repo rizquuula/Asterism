@@ -1,12 +1,17 @@
 """Utility functions for the evaluator node."""
 
+import logging
+import time
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from asterism.agent.models import EvaluationDecision, LLMUsage, Task, TaskInputResolverResult
 from asterism.agent.state import AgentState
+from asterism.agent.utils.logging_utils import log_llm_call, log_llm_call_start
 from asterism.llm.base import BaseLLMProvider
+
+logger = logging.getLogger(__name__)
 
 
 def get_user_request(state: AgentState) -> str:
@@ -207,9 +212,34 @@ def resolve_next_task_inputs(
             HumanMessage(content=prompt),
         ]
 
+        # Log LLM call start
+        log_llm_call_start(
+            logger=logger,
+            node_name="evaluator_node_task_resolver",
+            model=llm.model,
+            action=f"resolving inputs for task {next_task.id}",
+            prompt_preview=prompt,
+        )
+
+        # Time the LLM call
+        start_time = time.perf_counter()
         response = llm.invoke_structured(
             messages,
             schema=TaskInputResolverResult,
+        )
+        duration_ms = (time.perf_counter() - start_time) * 1000
+
+        # Log LLM call completion
+        log_llm_call(
+            logger=logger,
+            node_name="evaluator_node_task_resolver",
+            model=llm.model,
+            prompt_tokens=response.prompt_tokens,
+            completion_tokens=response.completion_tokens,
+            duration_ms=duration_ms,
+            prompt_preview=prompt[:500],
+            response_preview=str(response.parsed.model_dump())[:500],
+            success=True,
         )
 
         # Track LLM usage
@@ -230,6 +260,22 @@ def resolve_next_task_inputs(
 
         return None, usage
 
-    except Exception:
+    except Exception as e:
+        duration_ms = (time.perf_counter() - start_time) * 1000 if "start_time" in locals() else 0
+
+        # Log failed LLM call
+        log_llm_call(
+            logger=logger,
+            node_name="evaluator_node_task_resolver",
+            model=llm.model,
+            prompt_tokens=getattr(response, "prompt_tokens", 0) if "response" in locals() else 0,
+            completion_tokens=getattr(response, "completion_tokens", 0) if "response" in locals() else 0,
+            duration_ms=duration_ms,
+            prompt_preview=prompt[:500] if "prompt" in locals() else None,
+            success=False,
+            error=str(e),
+        )
+
+        logger.debug(f"[evaluator_task_resolver] LLM call failed for task {next_task.id}: {e}")
         # If resolution fails, return None to use original inputs
         return None, None
