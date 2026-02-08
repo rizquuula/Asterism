@@ -135,8 +135,6 @@ def build_task_resolver_prompt(
     for i, result in enumerate(execution_results):
         status = "✓" if result.success else "✗"
         result_str = str(result.result) if result.result else "None"
-        if len(result_str) > 500:
-            result_str = result_str[:500] + "... [truncated]"
         results_context += f"\nTask {i + 1} ({result.task_id}): {status}\nResult: {result_str}\n"
 
     current_input = next_task.tool_input or {}
