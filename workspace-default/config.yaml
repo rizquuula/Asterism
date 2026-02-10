@@ -1,0 +1,19 @@
+agent:
+  name: Asteri
+  version: 1.0.0
+  description: A part of Asterism AI Agents
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  debug: true
+
+models:
+  provider:
+    - type: openai-compatible
+      name: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_key: env.OPENROUTER_API_KEY
+  default: openrouter/stepfun-ai/Step-3.5-Flash-FP8
+  fallback:
+    - openrouter/qwen/qwen3-coder-next
