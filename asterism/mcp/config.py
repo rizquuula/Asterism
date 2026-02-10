@@ -160,7 +160,7 @@ class MCPConfig:
             "command": server_config.get("command"),
             "args": server_config.get("args", []),
             "transport": server_config.get("transport", "stdio"),
-            "cwd": server_config.get("cwd", "./workspace"),
+            "cwd": server_config.get("cwd", "."),
         }
 
 
