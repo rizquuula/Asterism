@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Entry point for the Asterism API server."""
 
-import logging
+
+import os
 
 import uvicorn
 
@@ -10,11 +11,16 @@ from asterism.config import Config
 
 def main():
     """Run the API server."""
-    # Configure logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+
+    # Define the target directory
+    target_dir = "./workspace"
+
+    # Change the directory if it exists
+    if os.path.exists(target_dir):
+        os.chdir(target_dir)
+        print(f"CWD changed to: {os.getcwd()}")
+    else:
+        print(f"Warning: {target_dir} not found. Staying in current directory.")
 
     # Load configuration
     config = Config()

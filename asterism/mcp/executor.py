@@ -18,18 +18,21 @@ from .transport_executor import create_transport
 class MCPExecutor:
     """Dynamic MCP tool executor that uses configuration-based tool routing."""
 
-    def __init__(self, config_path: str | None = None):
+    def __init__(self, config_path: str | MCPConfig | None = None):
         """
         Initialize the MCP executor.
 
         Args:
             config_path: Path to the MCP configuration file. If None, uses default location.
         """
-        if config_path:
+        if isinstance(config_path, str):
             self.config = MCPConfig(config_path)
             self.config.load_config()
+        if isinstance(config_path, MCPConfig):
+            self.config = config_path
         else:
             self.config = get_mcp_config()
+
         self.transports: dict[str, BaseTransport | None] = {}
         self.tool_cache: dict[str, list] = {}
         self.tool_schema_cache: dict[str, list[dict[str, Any]]] = {}

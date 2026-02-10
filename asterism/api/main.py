@@ -1,6 +1,8 @@
 """FastAPI application factory."""
 
 import logging
+import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,12 +33,25 @@ def create_api_app(config: Config | None = None) -> FastAPI:
     if config is None:
         config = Config()
 
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        """Handle application lifespan (startup/shutdown)."""
+        # Startup
+        logger.info(f"Asterism API v{config.data.agent.version} starting...")
+        logger.info(f"Workspace: {config.workspace_path}, Working Dir: {os.getcwd()}")
+        logger.info(f"Default model: {config.data.models.default}")
+        logger.info(f"Configured providers: {[p.name for p in config.data.models.provider]}")
+        yield
+        # Shutdown
+        logger.info("Asterism API shutting down...")
+
     app = FastAPI(
         title="Asterism API",
         description="OpenAI-compatible API for Asterism Agent",
         version=config.data.agent.version,
         docs_url="/docs" if config.data.api.debug else None,
         redoc_url="/redoc" if config.data.api.debug else None,
+        lifespan=lifespan,
     )
 
     # CORS middleware
@@ -57,18 +72,5 @@ def create_api_app(config: Config | None = None) -> FastAPI:
     app.include_router(chat_router, prefix="/v1")
     app.include_router(models_router, prefix="/v1")
     app.include_router(health_router, prefix="/v1")
-
-    @app.on_event("startup")
-    async def startup_event():
-        """Handle application startup."""
-        logger.info(f"Asterism API v{config.data.agent.version} starting...")
-        logger.info(f"Workspace: {config.workspace_path}")
-        logger.info(f"Default model: {config.data.models.default}")
-        logger.info(f"Configured providers: {[p.name for p in config.data.models.provider]}")
-
-    @app.on_event("shutdown")
-    async def shutdown_event():
-        """Handle application shutdown."""
-        logger.info("Asterism API shutting down...")
 
     return app

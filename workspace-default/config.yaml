@@ -7,6 +7,9 @@ api:
   host: 0.0.0.0
   port: 8000
   debug: true
+  cors_origins:
+    - "*"
+  api_keys: env.API_KEYS
 
 models:
   provider:
@@ -17,3 +20,7 @@ models:
   default: openrouter/stepfun-ai/Step-3.5-Flash-FP8
   fallback:
     - openrouter/qwen/qwen3-coder-next
+
+mcp:
+  servers_file: mcp_servers/mcp_servers.json
+  timeout: 30

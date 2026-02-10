@@ -90,6 +90,7 @@ class ModelInfo(BaseModel):
     object: Literal["model"] = "model"
     created: int
     owned_by: str
+    root: str
 
 
 class ModelsListResponse(BaseModel):

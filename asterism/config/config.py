@@ -4,13 +4,50 @@ Loads configuration from workspace/config.yaml with support for
 environment variable resolution (values prefixed with 'env.').
 """
 
+import logging
 import os
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field
 
+# application log
+LOG_FILENAME = os.getenv("LOG_FILENAME", "asterism.log")
+if LOG_FILENAME == "":
+    raise OSError("env LOG_FILENAME is required")
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "info").lower()
+if LOG_LEVEL == "debug":
+    log_level = logging.DEBUG
+elif LOG_LEVEL == "warning":
+    log_level = logging.WARNING
+elif LOG_LEVEL == "error":
+    log_level = logging.ERROR
+else:
+    log_level = logging.INFO
+
+file_handler = TimedRotatingFileHandler(
+    LOG_FILENAME,
+    when="midnight",
+    interval=1,
+    backupCount=12,  # Keeps up to 12 months of logs
+)
+file_handler.suffix = "%Y-%m"
+
+stream_handler = logging.StreamHandler()
+
+log_handlers = [
+    file_handler,
+    stream_handler,
+]
+
+logging.basicConfig(
+    level=log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - Line: %(lineno)d - %(funcName)s - %(message)s",
+    handlers=log_handlers,
+)
 
 class AgentConfig(BaseModel):
     """Agent metadata configuration."""
@@ -132,7 +169,7 @@ class Config:
         if env_path is not None:
             return env_path
 
-        return "./workspace"
+        return "."
 
     def _load(self) -> None:
         """Load and parse the configuration file."""
@@ -244,9 +281,6 @@ class Config:
             str: Path to MCP servers JSON file (absolute or relative to workspace).
         """
         servers_file = self.data.mcp.servers_file
-        if not servers_file.startswith("/"):
-            # Relative path - resolve against workspace
-            return str(Path(self._workspace_path) / servers_file)
         return servers_file
 
     def reload(self) -> None:

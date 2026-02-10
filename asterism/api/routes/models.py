@@ -30,23 +30,14 @@ async def list_models(
     models: list[ModelInfo] = []
 
     # Add default model
-    default_model = config.data.models.default
+    default_model = f"asterism/{config.data.agent.name}"
     models.append(
         ModelInfo(
             id=default_model,
             created=int(time.time()),
             owned_by="asterism",
+            root=default_model,
         )
     )
-
-    # Add fallback models
-    for fallback_model in config.data.models.fallback:
-        models.append(
-            ModelInfo(
-                id=fallback_model,
-                created=int(time.time()),
-                owned_by="asterism",
-            )
-        )
 
     return ModelsListResponse(data=models)
