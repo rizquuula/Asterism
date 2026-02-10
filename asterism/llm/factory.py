@@ -1,15 +1,17 @@
 """Factory for creating LLM provider instances."""
 
 import logging
+from typing import TYPE_CHECKING
 
 from asterism.config import Config, ModelProvider
-from asterism.llm.provider_router import LLMProviderRouter
 
 from .base import BaseLLMProvider
 from .openai_provider import OpenAIProvider
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    from asterism.llm.provider_router import LLMProviderRouter
 
 class LLMProviderFactory:
     """Factory for creating LLM provider instances from configuration."""

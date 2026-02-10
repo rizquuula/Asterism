@@ -70,9 +70,10 @@ def test_agent_initialization_defaults(mock_llm, mock_mcp_executor):
 
     assert agent.llm is mock_llm
     assert agent.mcp_executor is mock_mcp_executor
-    assert agent.db_path == ".checkpoints/agent.db"
+    assert agent.db_path is None  # Stateless mode by default
     assert agent.workspace_root == "./workspace"
-    assert agent._graph is None
+    assert agent._full_graph is None
+    assert agent._streaming_graph is None
     assert agent._checkpointer is None
     assert agent._conn is None
 
@@ -90,12 +91,12 @@ def test_agent_initialization_custom(mock_llm, mock_mcp_executor):
     assert agent.workspace_root == "/custom/workspace"
 
 
-def test_agent_initialization_none_db_path(mock_llm, mock_mcp_executor):
-    """Test Agent initialization with None db_path uses default."""
+def test_agent_initialization_with_db_path(mock_llm, mock_mcp_executor):
+    """Test Agent initialization with explicit db_path."""
     agent = Agent(
         llm=mock_llm,
         mcp_executor=mock_mcp_executor,
-        db_path=None,
+        db_path=".checkpoints/agent.db",
     )
 
     assert agent.db_path == ".checkpoints/agent.db"
@@ -140,95 +141,73 @@ def test_get_checkpointer_caches_result(mock_sqlite_connect, mock_sqlite_saver, 
     mock_sqlite_connect.assert_called_once()
 
 
-@patch("asterism.agent.agent.StateGraph")
-def test_agent_build_creates_graph(mock_state_graph_class, mock_llm, mock_mcp_executor):
+def test_get_checkpointer_returns_none_when_no_db_path(mock_llm, mock_mcp_executor):
+    """Test that checkpointer returns None when db_path is None (stateless mode)."""
+    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor, db_path=None)
+
+    checkpointer = agent._get_checkpointer()
+
+    assert checkpointer is None
+
+
+@patch("asterism.agent.agent.build_full_graph")
+def test_agent_build_creates_graph(mock_build_graph, mock_llm, mock_mcp_executor):
     """Test that build() creates the workflow graph."""
-    mock_workflow = MagicMock()
-    mock_state_graph_class.return_value = mock_workflow
     mock_compiled = MagicMock()
-    mock_workflow.compile.return_value = mock_compiled
+    mock_build_graph.return_value = mock_compiled
 
-    with patch.object(Agent, "_get_checkpointer") as mock_get_cp:
-        mock_get_cp.return_value = MagicMock()
+    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor)
+    result = agent.build()
 
-        agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor)
-        result = agent.build()
-
-        assert result is mock_compiled
-        # Verify nodes were added (check call count and names)
-        add_node_calls = [call for call in mock_workflow.add_node.call_args_list]
-        node_names = [call[0][0] for call in add_node_calls]
-        assert "planner_node" in node_names
-        assert "executor_node" in node_names
-        assert "evaluator_node" in node_names
-        assert "finalizer_node" in node_names
+    assert result is mock_compiled
+    mock_build_graph.assert_called_once()
 
 
-@patch("asterism.agent.agent.StateGraph")
-def test_agent_build_caches_graph(mock_state_graph_class, mock_llm, mock_mcp_executor):
+@patch("asterism.agent.agent.build_full_graph")
+def test_agent_build_caches_graph(mock_build_graph, mock_llm, mock_mcp_executor):
     """Test that build() caches the graph."""
-    mock_workflow = MagicMock()
-    mock_state_graph_class.return_value = mock_workflow
     mock_compiled = MagicMock()
-    mock_workflow.compile.return_value = mock_compiled
+    mock_build_graph.return_value = mock_compiled
 
-    with patch.object(Agent, "_get_checkpointer") as mock_get_cp:
-        mock_get_cp.return_value = MagicMock()
-
-        agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor)
-
-        # Build twice
-        result1 = agent.build()
-        result2 = agent.build()
-
-        assert result1 is result2
-        # StateGraph should only be instantiated once
-        mock_state_graph_class.assert_called_once()
-
-
-def test_make_planner_node(mock_llm, mock_mcp_executor):
-    """Test creating planner node function."""
-    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor, workspace_root="/workspace")
-
-    planner_fn = agent._make_planner_node()
-
-    assert callable(planner_fn)
-
-
-def test_make_executor_node(mock_llm, mock_mcp_executor):
-    """Test creating executor node function."""
     agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor)
 
-    executor_fn = agent._make_executor_node()
+    # Build twice
+    result1 = agent.build()
+    result2 = agent.build()
 
-    assert callable(executor_fn)
+    assert result1 is result2
+    # build_full_graph should only be called once
+    mock_build_graph.assert_called_once()
 
 
-def test_make_evaluator_node(mock_llm, mock_mcp_executor):
-    """Test creating evaluator node function."""
+@patch("asterism.agent.agent.build_streaming_graph")
+def test_agent_build_for_streaming_creates_graph(mock_build_streaming_graph, mock_llm, mock_mcp_executor):
+    """Test that build_for_streaming() creates the streaming workflow graph."""
+    mock_compiled = MagicMock()
+    mock_build_streaming_graph.return_value = mock_compiled
+
+    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor)
+    result = agent.build_for_streaming()
+
+    assert result is mock_compiled
+    mock_build_streaming_graph.assert_called_once()
+
+
+@patch("asterism.agent.agent.build_streaming_graph")
+def test_agent_build_for_streaming_caches_graph(mock_build_streaming_graph, mock_llm, mock_mcp_executor):
+    """Test that build_for_streaming() caches the graph."""
+    mock_compiled = MagicMock()
+    mock_build_streaming_graph.return_value = mock_compiled
+
     agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor)
 
-    evaluator_fn = agent._make_evaluator_node()
+    # Build twice
+    result1 = agent.build_for_streaming()
+    result2 = agent.build_for_streaming()
 
-    assert callable(evaluator_fn)
-
-
-def test_make_finalizer_node(mock_llm, mock_mcp_executor):
-    """Test creating finalizer node function."""
-    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor)
-
-    finalizer_fn = agent._make_finalizer_node()
-
-    assert callable(finalizer_fn)
-
-
-def test_make_routing_function(mock_llm, mock_mcp_executor):
-    """Test creating routing function."""
-    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor)
-
-    route_fn = agent._make_routing_function()
-
-    assert callable(route_fn)
+    assert result1 is result2
+    # build_streaming_graph should only be called once
+    mock_build_streaming_graph.assert_called_once()
 
 
 @patch.object(Agent, "build")
@@ -371,16 +350,23 @@ def test_invoke_usage_aggregation(mock_build, mock_llm, mock_mcp_executor):
     assert usage["calls_by_node"]["executor_node"] == 1
 
 
-@patch.object(Agent, "build")
-def test_clear_session(mock_build, mock_llm, mock_mcp_executor):
-    """Test clearing a session."""
+def test_clear_session_stateless_mode(mock_llm, mock_mcp_executor):
+    """Test clearing a session in stateless mode (no db_path)."""
+    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor, db_path=None)
+
+    # Should not raise any errors in stateless mode
+    agent.clear_session("session_123")
+
+
+def test_clear_session_with_checkpointer(mock_llm, mock_mcp_executor):
+    """Test clearing a session with checkpointer."""
     mock_checkpointer = MagicMock()
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_conn.cursor.return_value = mock_cursor
     mock_checkpointer.conn = mock_conn
 
-    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor)
+    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor, db_path="test.db")
     agent._checkpointer = mock_checkpointer
 
     agent.clear_session("session_123")
@@ -393,23 +379,18 @@ def test_clear_session(mock_build, mock_llm, mock_mcp_executor):
 
 
 @patch.object(Agent, "build")
-def test_clear_session_builds_first(mock_build, mock_llm, mock_mcp_executor):
-    """Test that clear_session builds the checkpointer if needed."""
+@patch.object(Agent, "_get_checkpointer")
+def test_clear_session_gets_checkpointer_first(mock_get_checkpointer, mock_build, mock_llm, mock_mcp_executor):
+    """Test that clear_session gets checkpointer first if needed."""
     mock_checkpointer = MagicMock()
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_conn.cursor.return_value = mock_cursor
     mock_checkpointer.conn = mock_conn
+    mock_get_checkpointer.return_value = mock_checkpointer
 
-    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor)
+    agent = Agent(llm=mock_llm, mcp_executor=mock_mcp_executor, db_path="test.db")
     agent._checkpointer = None
-
-    # Mock build to set checkpointer
-    def mock_build_impl():
-        agent._checkpointer = mock_checkpointer
-        return MagicMock()
-
-    mock_build.side_effect = mock_build_impl
 
     agent.clear_session("session_123")
 
@@ -426,7 +407,6 @@ def test_close_with_connection(mock_llm, mock_mcp_executor):
     agent.close()
 
     mock_conn.close.assert_called_once()
-    # Note: The actual implementation doesn't set _conn to None after closing
 
 
 def test_close_without_connection(mock_llm, mock_mcp_executor):
