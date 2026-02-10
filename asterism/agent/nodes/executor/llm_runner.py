@@ -5,7 +5,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from asterism.agent.models import TaskResult
 from asterism.agent.nodes.shared import LLMCaller
 from asterism.agent.state import AgentState
-from asterism.llm.base import BaseLLMProvider
+from asterism.llm.providers import BaseLLMProvider
 
 # Simple system prompt for LLM tasks
 LLM_TASK_SYSTEM_PROMPT = """You are a helpful assistant executing a specific task.

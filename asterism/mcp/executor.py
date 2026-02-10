@@ -28,7 +28,7 @@ class MCPExecutor:
         if isinstance(config_path, str):
             self.config = MCPConfig(config_path)
             self.config.load_config()
-        if isinstance(config_path, MCPConfig):
+        elif isinstance(config_path, MCPConfig):
             self.config = config_path
         else:
             self.config = get_mcp_config()

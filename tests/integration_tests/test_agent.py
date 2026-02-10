@@ -6,7 +6,7 @@ import pytest
 from langchain_core.messages import HumanMessage
 
 from asterism.agent.agent import Agent
-from asterism.llm.openai_provider import OpenAIProvider
+from asterism.llm.providers import OpenAIProvider
 from asterism.mcp.executor import MCPExecutor
 
 

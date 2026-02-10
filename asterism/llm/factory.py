@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING
 
 from asterism.config import Config, ModelProvider
 
-from .base import BaseLLMProvider
-from .openai_provider import OpenAIProvider
+from .providers import BaseLLMProvider, OpenAIProvider
 
 logger = logging.getLogger(__name__)
 

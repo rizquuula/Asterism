@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Entry point for the Asterism API server."""
 
-
 import os
 
 import uvicorn

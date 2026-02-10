@@ -6,7 +6,7 @@ from typing import Any, TypeVar
 
 from asterism.agent.models import LLMUsage
 from asterism.agent.utils import log_llm_call, log_llm_call_start
-from asterism.llm.base import BaseLLMProvider
+from asterism.llm.providers import BaseLLMProvider
 
 T = TypeVar("T")
 

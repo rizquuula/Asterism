@@ -15,7 +15,7 @@ from asterism.agent.nodes.shared import (
     set_plan,
 )
 from asterism.agent.state import AgentState
-from asterism.llm.base import BaseLLMProvider
+from asterism.llm.providers import BaseLLMProvider
 from asterism.mcp.executor import MCPExecutor
 
 logger = logging.getLogger(__name__)

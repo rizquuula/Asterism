@@ -1,18 +1,20 @@
 """LLM Provider Router with primary-first fallback."""
 
 import logging
-from collections.abc import AsyncGenerator
-from typing import Any
+from collections.abc import AsyncGenerator, Callable
+from typing import Any, TypeVar
 
 from langchain_core.messages import BaseMessage
 
 from asterism.config import Config
 
-from .base import BaseLLMProvider, LLMResponse, StructuredLLMResponse
 from .exceptions import AllProvidersFailedError
 from .factory import LLMProviderFactory
+from .providers import BaseLLMProvider, LLMResponse, StructuredLLMResponse
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 class LLMProviderRouter(BaseLLMProvider):
@@ -54,6 +56,56 @@ class LLMProviderRouter(BaseLLMProvider):
             except Exception as e:
                 logger.warning(f"Failed to initialize provider {provider_config.name}: {e}")
 
+    def _execute_with_fallback(
+        self,
+        execute_fn: Callable[[BaseLLMProvider, str], T],
+        prompt: str | list[BaseMessage],
+        **kwargs: Any,
+    ) -> T:
+        """Execute a provider method with primary-first fallback.
+
+        This is the core fallback logic shared by all invoke methods.
+
+        Args:
+            execute_fn: Function to execute on each provider (provider, model_name) -> result
+            prompt: Text or messages to send to the LLM
+            **kwargs: Additional parameters including:
+                - model: Model identifier (provider/model or just model)
+
+        Returns:
+            Result from the first successful provider execution
+
+        Raises:
+            AllProvidersFailedError: If all models in the chain fail
+        """
+        model = kwargs.get("model", self.config.data.models.default)
+        model_chain = self._build_model_chain(primary_model=model)
+        model_names = [f"{p.name}/{m}" for p, m in model_chain]
+
+        if not model_chain:
+            raise AllProvidersFailedError(
+                "No providers available in the chain",
+                provider_chain=model_names,
+            )
+
+        last_error: Exception | None = None
+
+        for provider, model_name in model_chain:
+            try:
+                result = execute_fn(provider, model_name)
+                logger.debug(f"Model succeeded: {provider.name}/{model_name}")
+                return result
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Model {provider.name}/{model_name} failed: {e}")
+                continue
+
+        raise AllProvidersFailedError(
+            f"All models failed after trying {len(model_chain)} model(s).",
+            last_error=last_error,
+            provider_chain=model_names,
+        )
+
     def invoke(self, prompt: str | list[BaseMessage], **kwargs: Any) -> str:
         """Invoke LLM with primary-first fallback.
 
@@ -69,33 +121,10 @@ class LLMProviderRouter(BaseLLMProvider):
         Raises:
             AllProvidersFailedError: If all models in the chain fail
         """
-        model = kwargs.get("model", self.config.data.models.default)
-        model_chain = self._build_model_chain(model)
-        model_names = [f"{p.name}/{m}" for p, m in model_chain]
-
-        if not model_chain:
-            raise AllProvidersFailedError(
-                "No providers available in the chain",
-                provider_chain=model_names,
-            )
-
-        last_error: Exception | None = None
-
-        for provider, model_name in model_chain:
-            try:
-                kwargs["model"] = model_name
-                result = provider.invoke(prompt, **kwargs)
-                logger.debug(f"Model succeeded: {provider.name}/{model_name}")
-                return result
-            except Exception as e:
-                last_error = e
-                logger.warning(f"Model {provider.name}/{model_name} failed: {e}")
-                continue
-
-        raise AllProvidersFailedError(
-            f"All models failed after trying {len(model_chain)} model(s).",
-            last_error=last_error,
-            provider_chain=model_names,
+        return self._execute_with_fallback(
+            lambda provider, model_name: provider.invoke(prompt, **{**kwargs, "model": model_name}),
+            prompt,
+            **kwargs,
         )
 
     def invoke_with_usage(
@@ -116,33 +145,10 @@ class LLMProviderRouter(BaseLLMProvider):
         Raises:
             AllProvidersFailedError: If all models in the chain fail
         """
-        model = kwargs.get("model", self.config.data.models.default)
-        model_chain = self._build_model_chain(model)
-        model_names = [f"{p.name}/{m}" for p, m in model_chain]
-
-        if not model_chain:
-            raise AllProvidersFailedError(
-                "No providers available in the chain",
-                provider_chain=model_names,
-            )
-
-        last_error: Exception | None = None
-
-        for provider, model_name in model_chain:
-            try:
-                kwargs["model"] = model_name
-                result = provider.invoke_with_usage(prompt, **kwargs)
-                logger.debug(f"Model succeeded: {provider.name}/{model_name}")
-                return result
-            except Exception as e:
-                last_error = e
-                logger.warning(f"Model {provider.name}/{model_name} failed: {e}")
-                continue
-
-        raise AllProvidersFailedError(
-            f"All models failed after trying {len(model_chain)} model(s).",
-            last_error=last_error,
-            provider_chain=model_names,
+        return self._execute_with_fallback(
+            lambda provider, model_name: provider.invoke_with_usage(prompt, **{**kwargs, "model": model_name}),
+            prompt,
+            **kwargs,
         )
 
     def invoke_structured(
@@ -165,33 +171,10 @@ class LLMProviderRouter(BaseLLMProvider):
         Raises:
             AllProvidersFailedError: If all models in the chain fail
         """
-        model = kwargs.get("model", self.config.data.models.default)
-        model_chain = self._build_model_chain(model)
-        model_names = [f"{p.name}/{m}" for p, m in model_chain]
-
-        if not model_chain:
-            raise AllProvidersFailedError(
-                "No providers available in the chain",
-                provider_chain=model_names,
-            )
-
-        last_error: Exception | None = None
-
-        for provider, model_name in model_chain:
-            try:
-                kwargs["model"] = model_name
-                result = provider.invoke_structured(prompt, schema, **kwargs)
-                logger.debug(f"Model succeeded: {provider.name}/{model_name}")
-                return result
-            except Exception as e:
-                last_error = e
-                logger.warning(f"Model {provider.name}/{model_name} failed: {e}")
-                continue
-
-        raise AllProvidersFailedError(
-            f"All models failed after trying {len(model_chain)} model(s).",
-            last_error=last_error,
-            provider_chain=model_names,
+        return self._execute_with_fallback(
+            lambda provider, model_name: provider.invoke_structured(prompt, schema, **{**kwargs, "model": model_name}),
+            prompt,
+            **kwargs,
         )
 
     def _build_model_chain(self, primary_model: str | None) -> list[tuple[BaseLLMProvider, str]]:
@@ -291,9 +274,8 @@ class LLMProviderRouter(BaseLLMProvider):
 
         for provider, model_name in model_chain:
             try:
-                kwargs["model"] = model_name
                 logger.debug(f"Streaming with model: {provider.name}/{model_name}")
-                async for token in provider.astream(prompt, **kwargs):
+                async for token in provider.astream(prompt, **{**kwargs, "model": model_name}):
                     yield token
                 return  # Successfully streamed, exit
 

@@ -16,7 +16,7 @@ from asterism.agent.nodes.shared import (
 )
 from asterism.agent.state import AgentState
 from asterism.agent.utils import log_evaluation_decision
-from asterism.llm.base import BaseLLMProvider
+from asterism.llm.providers import BaseLLMProvider
 
 logger = logging.getLogger(__name__)
 

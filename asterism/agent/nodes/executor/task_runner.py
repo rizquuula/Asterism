@@ -4,7 +4,7 @@ from typing import Protocol
 
 from asterism.agent.models import TaskResult
 from asterism.agent.state import AgentState
-from asterism.llm.base import BaseLLMProvider
+from asterism.llm.providers import BaseLLMProvider
 from asterism.mcp.executor import MCPExecutor
 
 from .llm_runner import LLMRunner

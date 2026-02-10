@@ -49,6 +49,7 @@ logging.basicConfig(
     handlers=log_handlers,
 )
 
+
 class AgentConfig(BaseModel):
     """Agent metadata configuration."""
 

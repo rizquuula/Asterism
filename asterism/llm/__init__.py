@@ -1,10 +1,14 @@
 """LLM provider module for Asterism."""
 
-from .base import BaseLLMProvider, LLMResponse, StructuredLLMResponse
 from .exceptions import AllProvidersFailedError
 from .factory import LLMProviderFactory
-from .openai_provider import OpenAIProvider
 from .provider_router import LLMProviderRouter
+from .providers import (
+    BaseLLMProvider,
+    LLMResponse,
+    OpenAIProvider,
+    StructuredLLMResponse,
+)
 
 __all__ = [
     "AllProvidersFailedError",

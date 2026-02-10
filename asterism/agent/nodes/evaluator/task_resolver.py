@@ -7,7 +7,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from asterism.agent.models import LLMUsage, Task, TaskInputResolverResult
 from asterism.agent.nodes.shared import LLMCaller, get_user_request, has_execution_history
 from asterism.agent.state import AgentState
-from asterism.llm.base import BaseLLMProvider
+from asterism.llm.providers import BaseLLMProvider
 
 RESOLVER_SYSTEM_PROMPT = """You are a task input resolver.
 Extract information from previous results to update task inputs.

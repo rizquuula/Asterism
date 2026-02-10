@@ -2,8 +2,7 @@
 
 import pytest
 
-from asterism.llm.base import BaseLLMProvider
-from asterism.llm.openai_provider import OpenAIProvider
+from asterism.llm.providers import BaseLLMProvider, OpenAIProvider
 
 
 def test_invoke_simple_prompt(openai_provider: BaseLLMProvider, test_prompt: str):
