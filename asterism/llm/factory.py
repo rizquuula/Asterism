@@ -1,16 +1,12 @@
 """Factory for creating LLM provider instances."""
 
 import logging
-from typing import TYPE_CHECKING
 
-from asterism.config import Config, ModelProvider
+from asterism.config import ModelProvider
 
 from .providers import BaseLLMProvider, OpenAIProvider
 
 logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from asterism.llm.provider_router import LLMProviderRouter
 
 
 class LLMProviderFactory:
@@ -48,18 +44,3 @@ class LLMProviderFactory:
             )
 
         raise ValueError(f"Unsupported provider type: {provider_config.type}")
-
-    @staticmethod
-    def create_router(config: Config | None = None) -> "LLMProviderRouter":
-        """Create the provider router with all configured providers.
-
-        Args:
-            config: Configuration object. If None, creates a new Config instance.
-
-        Returns:
-            LLMProviderRouter: Configured router with all providers
-        """
-        # Import here to avoid circular import
-        from .provider_router import LLMProviderRouter
-
-        return LLMProviderRouter(config)
