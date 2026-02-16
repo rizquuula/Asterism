@@ -14,9 +14,14 @@ import yaml
 from pydantic import BaseModel, Field
 
 # application log
-LOG_FILENAME = os.getenv("LOG_FILENAME", "asterism.log")
+LOG_FILENAME = os.getenv("LOG_FILENAME", "./logs/app.log")
 if LOG_FILENAME == "":
     raise OSError("env LOG_FILENAME is required")
+
+# Ensure logs directory exists
+logs_dir = os.path.dirname(LOG_FILENAME)
+if logs_dir and not os.path.exists(logs_dir):
+    os.makedirs(logs_dir, exist_ok=True)
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "info").lower()
 if LOG_LEVEL == "debug":
@@ -32,9 +37,9 @@ file_handler = TimedRotatingFileHandler(
     LOG_FILENAME,
     when="midnight",
     interval=1,
-    backupCount=12,  # Keeps up to 12 months of logs
+    backupCount=30,  # Keeps up to 30 days of logs
 )
-file_handler.suffix = "%Y-%m"
+file_handler.suffix = "%Y-%m-%d"
 
 stream_handler = logging.StreamHandler()
 
@@ -43,11 +48,22 @@ log_handlers = [
     stream_handler,
 ]
 
-logging.basicConfig(
-    level=log_level,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - Line: %(lineno)d - %(funcName)s - %(message)s",
-    handlers=log_handlers,
+# Configure root logger to propagate to handlers
+root_logger = logging.getLogger()
+root_logger.setLevel(log_level)
+root_logger.handlers.clear()
+for handler in log_handlers:
+    root_logger.addHandler(handler)
+
+# Set format for all handlers
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(filename)s - Line: %(lineno)d - %(funcName)s - %(message)s"
 )
+for handler in log_handlers:
+    handler.setFormatter(formatter)
+
+# Enable propagation so child loggers inherit the handlers
+logging.getLogger().setLevel(log_level)
 
 
 class AgentConfig(BaseModel):
