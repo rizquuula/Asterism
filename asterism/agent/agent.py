@@ -81,7 +81,7 @@ class Agent:
             if self.db_path == ":memory:":
                 self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
             else:
-                self._conn = sqlite3.connect(self.db_path)
+                self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
             self._checkpointer = SqliteSaver(self._conn)
         return self._checkpointer
 
