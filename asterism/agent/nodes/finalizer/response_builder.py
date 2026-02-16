@@ -6,6 +6,7 @@ from asterism.agent.models import AgentResponse, LLMUsage
 from asterism.agent.nodes.finalizer.prompts import FINALIZER_SYSTEM_PROMPT
 from asterism.agent.nodes.shared import LLMCaller
 from asterism.agent.state import AgentState
+from asterism.agent.utils import load_identity_context
 
 
 def build_error_response(failed_tasks: list, trace: list[dict]) -> AgentResponse:
@@ -48,6 +49,10 @@ def build_success_response(
     Returns:
         Tuple of (AgentResponse, LLMUsage or None if LLM call failed).
     """
+    workspace_root = state.get("workspace_root", "./workspace")
+    identity_context = load_identity_context(workspace_root)
+    system_prompt = f"{identity_context}\n\n{FINALIZER_SYSTEM_PROMPT}" if identity_context else FINALIZER_SYSTEM_PROMPT
+
     user_prompt = f"""Original user request: {user_request}
 
 Execution results:
@@ -56,7 +61,7 @@ Execution results:
 Create a response for the user."""
 
     messages = [
-        SystemMessage(content=FINALIZER_SYSTEM_PROMPT),
+        SystemMessage(content=system_prompt),
         HumanMessage(content=user_prompt),
     ]
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from asterism.agent.state import AgentState
-from asterism.agent.utils import get_workspace_tree_context
+from asterism.agent.utils import get_workspace_tree_context, load_identity_context
 from asterism.mcp.executor import MCPExecutor
 
 from .prompts import PLANNER_SYSTEM_PROMPT
@@ -48,12 +48,14 @@ def build_planner_context(
     execution_context = _build_execution_context(state)
     tools_context = _fetch_tools_context(mcp_executor)
     workspace_context = get_workspace_tree_context(workspace_root)
+    identity_context = load_identity_context(workspace_root)
 
     messages = _build_messages(
         user_message=user_message,
         execution_context=execution_context,
         tools_context=tools_context,
         workspace_context=workspace_context,
+        identity_context=identity_context,
     )
 
     return PlannerContext(
@@ -102,6 +104,7 @@ def _build_messages(
     execution_context: str,
     tools_context: str,
     workspace_context: str,
+    identity_context: str = "",
 ) -> list:
     """Build LLM messages for planning.
 
@@ -110,11 +113,12 @@ def _build_messages(
         execution_context: Previous execution results (if any).
         tools_context: Formatted tool descriptions.
         workspace_context: Workspace tree info.
+        identity_context: Agent identity loaded from workspace files.
 
     Returns:
         List of LangChain messages.
     """
-    system_prompt = _build_system_prompt(tools_context, workspace_context)
+    system_prompt = _build_system_prompt(tools_context, workspace_context, identity_context)
 
     user_prompt = f"""User Request: {user_message}
 
@@ -130,9 +134,10 @@ JSON OUTPUT:"""
     ]
 
 
-def _build_system_prompt(tools_context: str, workspace_context: str) -> str:
+def _build_system_prompt(tools_context: str, workspace_context: str, identity_context: str = "") -> str:
     """Build the enhanced system prompt with context."""
-    return f"""{PLANNER_SYSTEM_PROMPT}
+    identity_section = f"{identity_context}\n\n" if identity_context else ""
+    return f"""{identity_section}{PLANNER_SYSTEM_PROMPT}
 
 {workspace_context}
 

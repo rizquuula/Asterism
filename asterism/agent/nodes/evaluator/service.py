@@ -15,7 +15,7 @@ from asterism.agent.nodes.shared import (
     set_evaluation_result,
 )
 from asterism.agent.state import AgentState
-from asterism.agent.utils import log_evaluation_decision
+from asterism.agent.utils import load_identity_context, log_evaluation_decision
 from asterism.llm.providers import BaseLLMProvider
 
 logger = logging.getLogger(__name__)
@@ -37,8 +37,12 @@ def evaluate_with_llm(llm: BaseLLMProvider, state: AgentState) -> tuple[Evaluati
     caller = LLMCaller(llm, "evaluator_node")
     prompt = build_evaluator_prompt(state)
 
+    workspace_root = state.get("workspace_root", "./workspace")
+    identity_context = load_identity_context(workspace_root)
+    system_prompt = f"{identity_context}\n\n{EVALUATOR_SYSTEM_PROMPT}" if identity_context else EVALUATOR_SYSTEM_PROMPT
+
     messages = [
-        SystemMessage(content=EVALUATOR_SYSTEM_PROMPT),
+        SystemMessage(content=system_prompt),
         HumanMessage(content=prompt),
     ]
 

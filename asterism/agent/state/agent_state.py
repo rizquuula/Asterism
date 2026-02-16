@@ -12,6 +12,7 @@ class AgentState(TypedDict):
 
     session_id: str
     trace_id: str | None  # Unique trace ID for correlating logs across the entire flow
+    workspace_root: str  # Path to workspace dir, used for loading identity files
     messages: list[BaseMessage]
     plan: Plan | None
     current_task_index: int

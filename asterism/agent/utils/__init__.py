@@ -1,5 +1,6 @@
 """Utility modules for the agent."""
 
+from .identity_loader import load_identity_context
 from .logging_utils import (
     get_logger_context,
     log_evaluation_decision,
@@ -19,6 +20,7 @@ __all__ = [
     "generate_workspace_tree",
     "get_logger_context",
     "get_workspace_tree_context",
+    "load_identity_context",
     "log_evaluation_decision",
     "log_llm_call",
     "log_llm_call_start",

@@ -18,11 +18,12 @@ from asterism.llm.providers import BaseLLMProvider
 from asterism.mcp.executor import MCPExecutor
 
 
-def _initialize_state(session_id: str, messages: list[BaseMessage]) -> AgentState:
+def _initialize_state(session_id: str, messages: list[BaseMessage], workspace_root: str = "./workspace") -> AgentState:
     """Create initial agent state."""
     return {
         "session_id": session_id,
         "trace_id": str(uuid.uuid4()),  # Generate unique trace ID for this flow
+        "workspace_root": workspace_root,
         "messages": messages,
         "plan": None,
         "current_task_index": 0,
@@ -128,11 +129,18 @@ class Agent:
         graph = self.build()
 
         # Get initial state
-        initial_state = _initialize_state(session_id, messages)
+        initial_state = _initialize_state(
+            session_id,
+            messages,
+            self.workspace_root,
+        )
 
         # Run the graph
         try:
-            final_state = graph.invoke(initial_state, config={"configurable": {"thread_id": session_id}})
+            final_state = graph.invoke(
+                initial_state,
+                config={"configurable": {"thread_id": session_id}},
+            )
         except Exception as e:
             # Graph execution failed
             return {
@@ -206,11 +214,13 @@ class Agent:
         """
         from langchain_core.messages import SystemMessage
 
+        from asterism.agent.utils import load_identity_context
+
         # Build streaming graph (stops before finalizer)
         graph = self.build_for_streaming()
 
         # Get initial state
-        initial_state = _initialize_state(session_id, messages)
+        initial_state = _initialize_state(session_id, messages, self.workspace_root)
 
         # Run the graph up to finalization (non-streaming for planning/execution)
         try:
@@ -277,8 +287,12 @@ Execution results:
 
 Create a response for the user."""
 
+        identity_context = load_identity_context(self.workspace_root)
+        system_prompt = (
+            f"{identity_context}\n\n{FINALIZER_SYSTEM_PROMPT}" if identity_context else FINALIZER_SYSTEM_PROMPT
+        )
         finalizer_messages = [
-            SystemMessage(content=FINALIZER_SYSTEM_PROMPT),
+            SystemMessage(content=system_prompt),
             HumanMessage(content=user_prompt),
         ]
 

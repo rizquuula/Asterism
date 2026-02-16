@@ -1,5 +1,6 @@
 """Integration test for the complete agent workflow."""
 
+import json
 import os
 import tempfile
 
@@ -100,6 +101,9 @@ def agent_invoke(message: dict):
             messages=[message],
         )
 
+        json_str = json.dumps(response, indent=2)
+        print(f"Agent response:\n{json_str}")
+
         agent.close()
 
         assert response["session_id"] == "test-session"
@@ -110,9 +114,9 @@ def agent_invoke(message: dict):
 @pytest.mark.parametrize(
     "message",
     (
-        "What time is it now?",
+        # "What time is it now?",
         # "Can you read your SOUL.md and tell me what inside?",
-        # "Can you change your name in personality.md from Asteri to Yui? I want a cute name",
+        "Hello, what is your name?",
     ),
 )
 def test_agent_invoke(message: str):
