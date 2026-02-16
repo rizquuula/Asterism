@@ -17,3 +17,5 @@ RULES.md
 .initialized
 *.log
 *.log.*
+
+sessions

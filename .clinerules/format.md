@@ -1,0 +1,1 @@
+after using act mode, execute ./auto_format_ruff.sh and fix the error if exists

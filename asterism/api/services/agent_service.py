@@ -53,11 +53,11 @@ class AgentService:
         Returns:
             Dictionary containing the agent response and metadata
         """
-        # Create fresh agent for this request (no checkpointing for API mode)
+        # Create fresh agent for this request
         agent = Agent(
             llm=self.llm_router,
             mcp_executor=self.mcp_executor,
-            db_path=None,  # Disable checkpointing for API requests
+            db_path=self.config.data.api.db_path,
             workspace_root=self.config.workspace_path,
         )
 
@@ -95,11 +95,11 @@ class AgentService:
         Yields:
             Tuples of (token, metadata) from the agent's streaming response
         """
-        # Create fresh agent for this request (no checkpointing for API mode)
+        # Create fresh agent for this request
         agent = Agent(
             llm=self.llm_router,
             mcp_executor=self.mcp_executor,
-            db_path=None,  # Disable checkpointing for API requests
+            db_path=self.config.data.api.db_path,
             workspace_root=self.config.workspace_path,
         )
 

@@ -64,8 +64,18 @@ class APIConfig(BaseModel):
     host: str = Field(..., description="API host address")
     port: int = Field(..., description="API port number")
     debug: bool = Field(..., description="Debug mode flag")
-    cors_origins: list[str] = Field(default_factory=lambda: ["*"], description="Allowed CORS origins")
-    api_keys: str | None = Field(default=None, description="Comma-separated API keys for authentication")
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["*"],
+        description="Allowed CORS origins",
+    )
+    api_keys: str | None = Field(
+        default=None,
+        description="Comma-separated API keys for authentication",
+    )
+    db_path: str | None = Field(
+        default="sessions/data.db",
+        description="Path to SQLite checkpoint database (None to disable)",
+    )
 
 
 class ModelProvider(BaseModel):
