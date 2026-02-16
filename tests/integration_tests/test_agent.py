@@ -94,6 +94,7 @@ def agent_invoke(message: dict):
             llm=llm,
             mcp_executor=mcp_executor,
             db_path=":memory:",
+            workspace_root=".",
         )
 
         response = agent.invoke(

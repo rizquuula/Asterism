@@ -42,7 +42,7 @@ class Agent:
         llm: BaseLLMProvider,
         mcp_executor: MCPExecutor,
         db_path: str | None = None,
-        workspace_root: str = "./workspace",
+        workspace_root: str = ".",
     ):
         """
         Initialize the agent.

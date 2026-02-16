@@ -137,7 +137,10 @@ class Config:
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, workspace_path: str | None = None) -> None:
+    def __init__(
+        self,
+        workspace_path: str | None = None,
+    ) -> None:
         """Initialize the configuration (only runs once).
 
         Args:
