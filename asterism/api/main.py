@@ -16,7 +16,7 @@ from .exceptions import (
     api_error_handler,
     generic_exception_handler,
 )
-from .routes import chat_router, health_router, models_router
+from .routes import chat_router, config_router, health_router, models_router
 
 logger = logging.getLogger(__name__)
 
@@ -72,5 +72,6 @@ def create_api_app(config: Config | None = None) -> FastAPI:
     app.include_router(chat_router, prefix="/v1")
     app.include_router(models_router, prefix="/v1")
     app.include_router(health_router, prefix="/v1")
+    app.include_router(config_router, prefix="/asterism")
 
     return app
