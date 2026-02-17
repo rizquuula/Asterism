@@ -4,8 +4,11 @@
 import os
 
 import uvicorn
+from dotenv import load_dotenv
 
 from asterism.config import Config
+
+load_dotenv()
 
 
 def main():
