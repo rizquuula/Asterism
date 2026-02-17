@@ -1,4 +1,4 @@
 .PHONY: dev
 
 dev:
-	uv run asterism/api_server.py
+	uv run asterism/api_server
