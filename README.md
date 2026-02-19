@@ -117,7 +117,42 @@ Every LLM call receives:
 ```bash
 uv sync              # Install dependencies
 uv run pytest        # Run tests
-./auto_format_uff.sh  # Format code
+./auto_format_ruff.sh # Format code
+```
+
+## API Usage
+
+The API is OpenAI-compatible and runs on port 8080 by default.
+
+### Start the Server
+
+```bash
+uv run uvicorn asterism.api.main:create_api_app --factory --host 0.0.0.0 --port 8080
+```
+
+### Chat Completions
+
+**Non-streaming:**
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llmgateway/psn/Nusa-Max",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+**Streaming:**
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llmgateway/psn/Nusa-Max",
+    "messages": [{"role": "user", "content": "Hello!"}],
+    "stream": true
+  }'
 ```
 
 ## Testing
