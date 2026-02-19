@@ -120,3 +120,59 @@ def set_final_response(
         new_state["llm_usage"] = state.get("llm_usage", []) + [usage]
 
     return new_state
+
+
+def get_parallelizable_tasks(plan) -> list:
+    """Get tasks that can be executed in parallel (no inter-dependencies).
+
+    This function identifies tasks from the current task index onward that
+    have no dependencies on each other. These tasks can be executed in parallel
+    using LangGraph's Send API.
+
+    Args:
+        plan: The Plan object with tasks.
+
+    Returns:
+        List of tasks that can be executed in parallel.
+    """
+    if not plan or not plan.tasks:
+        return []
+
+    tasks = plan.tasks
+
+    # Find the starting index for parallel tasks
+    # We look for tasks that can run in parallel from current position
+    parallel_tasks = []
+
+    for task in tasks:
+        # Check if this task depends on any task in our parallel list
+        depends_on_parallel = any(dep in [t.id for t in parallel_tasks] for dep in task.depends_on)
+
+        # If task has no dependencies on already-collected parallel tasks, add it
+        if not depends_on_parallel:
+            parallel_tasks.append(task)
+
+    return parallel_tasks
+
+
+def get_independent_tasks(tasks: list, completed_task_ids: set) -> list:
+    """Get tasks that have all their dependencies satisfied and are not completed.
+
+    Args:
+        tasks: List of Task objects.
+        completed_task_ids: Set of task IDs that have been completed.
+
+    Returns:
+        List of tasks whose dependencies are all satisfied and are not yet completed.
+    """
+    independent = []
+    for task in tasks:
+        # Skip already completed tasks
+        if task.id in completed_task_ids:
+            continue
+
+        # Check if all dependencies are satisfied
+        deps_satisfied = all(dep_id in completed_task_ids for dep_id in task.depends_on)
+        if deps_satisfied:
+            independent.append(task)
+    return independent

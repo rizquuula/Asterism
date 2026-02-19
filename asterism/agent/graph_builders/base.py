@@ -20,6 +20,8 @@ def add_common_nodes(workflow: StateGraph, agent: "Agent") -> None:
     """
     workflow.add_node("planner_node", _make_planner_node(agent))
     workflow.add_node("executor_node", _make_executor_node(agent))
+    workflow.add_node("parallel_executor_node", _make_parallel_executor_node(agent))
+    workflow.add_node("parallel_execute_task", _make_parallel_execute_task_node(agent))
     workflow.add_node("evaluator_node", _make_evaluator_node(agent))
 
 
@@ -119,5 +121,38 @@ def _make_finalizer_node(agent: "Agent"):
 
     def _node(state: AgentState) -> AgentState:
         return finalizer_node(llm, state)
+
+    return _node
+
+
+def _make_parallel_executor_node(agent: "Agent"):
+    """Create parallel executor node with dependencies injected.
+
+    This node uses LangGraph's Send API to dispatch independent tasks
+    for parallel execution.
+    """
+    from asterism.agent.nodes.executor.node import executor_node_with_parallel
+
+    llm = agent.llm
+    mcp_executor = agent.mcp_executor
+
+    def _node(state: AgentState):
+        return executor_node_with_parallel(llm, mcp_executor, state)
+
+    return _node
+
+
+def _make_parallel_execute_task_node(agent: "Agent"):
+    """Create parallel task execution node with dependencies injected.
+
+    This node executes a single task dispatched via Send API.
+    """
+    from asterism.agent.nodes.executor.node import parallel_execute_task
+
+    llm = agent.llm
+    mcp_executor = agent.mcp_executor
+
+    def _node(data: dict):
+        return parallel_execute_task(llm, mcp_executor, data)
 
     return _node

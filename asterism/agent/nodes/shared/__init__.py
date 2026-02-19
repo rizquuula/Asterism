@@ -29,6 +29,8 @@ from .state_utils import (
     advance_task,
     append_llm_usage,
     create_error_state,
+    get_independent_tasks,
+    get_parallelizable_tasks,
     prepare_replan_state,
     set_evaluation_result,
     set_final_response,
@@ -56,6 +58,8 @@ __all__ = [
     "set_evaluation_result",
     "set_final_response",
     "set_plan",
+    "get_independent_tasks",
+    "get_parallelizable_tasks",
     # Trace Builder
     "build_execution_trace",
     # Plan Analyzer

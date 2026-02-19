@@ -1,6 +1,9 @@
 """Executor node implementation - executes tasks in the plan."""
 
 import logging
+from typing import Any
+
+from langgraph.types import Send
 
 from asterism.agent.nodes.executor.task_runner import create_task_runner
 from asterism.agent.nodes.shared import (
@@ -8,6 +11,7 @@ from asterism.agent.nodes.shared import (
     are_dependencies_satisfied,
     create_error_state,
     get_current_task,
+    get_independent_tasks,
     is_linear_plan,
 )
 from asterism.agent.state import AgentState
@@ -142,3 +146,96 @@ def log_task_completion(task_id: str, success: bool) -> None:
         logger.info(f"[executor] Task {task_id} completed successfully")
     else:
         logger.warning(f"[executor] Task {task_id} failed")
+
+
+# Parallel execution functions using LangGraph Send API
+
+
+def executor_node_with_parallel(
+    llm: BaseLLMProvider,
+    mcp_executor: MCPExecutor,
+    state: AgentState,
+) -> list[Send]:
+    """Entry point for executor that supports parallel execution.
+
+    This function uses LangGraph's Send API to dispatch independent tasks
+    to be executed in parallel. It returns a list of Send objects, each
+    targeting the parallel_execute_task node with the task data.
+
+    Args:
+        llm: The LLM provider for LLM-only tasks.
+        mcp_executor: The MCP executor for tool calls.
+        state: Current agent state.
+
+    Returns:
+        List of Send objects for parallel execution, or single task update.
+    """
+    plan = state.get("plan")
+    if not plan:
+        return state
+
+    # Get completed task IDs
+    execution_results = state.get("execution_results", [])
+    completed_task_ids = {r.task_id for r in execution_results}
+
+    # Get remaining tasks
+    remaining_tasks = plan.tasks[len(execution_results) :]
+
+    # Find independent tasks that can run in parallel
+    independent_tasks = get_independent_tasks(remaining_tasks, completed_task_ids)
+
+    if len(independent_tasks) <= 1:
+        # No parallelization possible, use standard execution
+        return _execute_single_task(llm, mcp_executor, state)
+
+    # Create Send objects for parallel execution
+    logger.info(f"[executor] Executing {len(independent_tasks)} tasks in parallel")
+    sends = []
+    for task in independent_tasks:
+        sends.append(
+            Send(
+                "parallel_execute_task",
+                {
+                    "task": task,
+                    "parent_state": state,
+                },
+            )
+        )
+
+    return sends
+
+
+def parallel_execute_task(
+    llm: BaseLLMProvider,
+    mcp_executor: MCPExecutor,
+    data: dict[str, Any],
+) -> dict[str, Any]:
+    """Execute a single task in parallel.
+
+    This node receives task data via Send and executes it, returning
+    the result to be aggregated by the reducer.
+
+    Args:
+        llm: The LLM provider for LLM-only tasks.
+        mcp_executor: The MCP executor for tool calls.
+        data: Dictionary containing task and parent_state.
+
+    Returns:
+        Dictionary with execution result to be merged into state.
+    """
+    task = data.get("task")
+    parent_state = data.get("parent_state", {})
+
+    if not task:
+        return {"parallel_results": []}
+
+    logger.info(f"[executor] Parallel executing task {task.id}: {task.description[:80]}")
+
+    runner = create_task_runner(task, llm, mcp_executor)
+    result = runner.execute(task, parent_state)
+
+    log_task_completion(task.id, result.success)
+
+    return {
+        "parallel_results": [result],
+    }
