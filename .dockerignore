@@ -21,3 +21,11 @@ RULES.md
 .initialized
 .checkpoints
 .kilocode
+tests/
+Dockerfile
+docker-compose.yml
+Makefile
+.claude/
+.clinerules/
+.python-version
+README.md
