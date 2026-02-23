@@ -337,6 +337,72 @@ class Config:
 
         current[final_key] = value
 
+        self._save()
+
+    def list_append(self, key_path: str, item: Any) -> None:
+        """Append an item to a list config value. Skips if item already exists.
+
+        Args:
+            key_path: Dot-separated path to the list field
+            item: Item to append
+
+        Raises:
+            ValueError: If key_path is invalid or target is not a list
+        """
+        keys = key_path.split(".")
+
+        current = self._raw_config
+        for key in keys[:-1]:
+            if key not in current:
+                raise ValueError(f"Key '{key}' not found in path '{key_path}'")
+            current = current[key]
+
+        final_key = keys[-1]
+        if final_key not in current:
+            raise ValueError(f"Key '{final_key}' not found in config")
+
+        if not isinstance(current[final_key], list):
+            raise ValueError(f"Key '{key_path}' is not a list")
+
+        if item not in current[final_key]:
+            current[final_key].append(item)
+
+        self._save()
+
+    def list_remove(self, key_path: str, item: Any) -> None:
+        """Remove an item from a list config value by value equality.
+
+        Args:
+            key_path: Dot-separated path to the list field
+            item: Item to remove (matched by value equality)
+
+        Raises:
+            ValueError: If key_path is invalid, target is not a list, or item not found
+        """
+        keys = key_path.split(".")
+
+        current = self._raw_config
+        for key in keys[:-1]:
+            if key not in current:
+                raise ValueError(f"Key '{key}' not found in path '{key_path}'")
+            current = current[key]
+
+        final_key = keys[-1]
+        if final_key not in current:
+            raise ValueError(f"Key '{final_key}' not found in config")
+
+        if not isinstance(current[final_key], list):
+            raise ValueError(f"Key '{key_path}' is not a list")
+
+        if item not in current[final_key]:
+            raise ValueError(f"Value '{item}' not found in '{key_path}'")
+
+        current[final_key].remove(item)
+
+        self._save()
+
+    def _save(self) -> None:
+        """Save the raw config to the YAML file and reload."""
         with open(self._config_file, "w", encoding="utf-8") as f:
             yaml.dump(self._raw_config, f, default_flow_style=False, sort_keys=False)
 

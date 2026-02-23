@@ -1,6 +1,6 @@
 """Config read and update endpoints."""
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -53,6 +53,7 @@ class ConfigResponse(BaseModel):
 class ConfigUpdateRequest(BaseModel):
     key: str
     value: Any
+    action: Literal["set", "append", "remove"]
 
 
 class ConfigUpdateResponse(BaseModel):
@@ -122,9 +123,20 @@ async def update_config_endpoint(
 
     Use dot notation for nested keys (e.g., "api.port", "models.default").
     Changes are persisted to config.yaml.
+
+    Actions:
+        - set: Replace value (for any field type)
+        - append: Add item to list (skips if already exists)
+        - remove: Remove item from list by value equality
     """
     try:
-        config.update_value(request.key, request.value)
+        match request.action:
+            case "set":
+                config.update_value(request.key, request.value)
+            case "append":
+                config.list_append(request.key, request.value)
+            case "remove":
+                config.list_remove(request.key, request.value)
         return ConfigUpdateResponse(
             success=True,
             message="Configuration updated successfully",
