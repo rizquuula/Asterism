@@ -1,0 +1,12 @@
+services:
+  asterism:
+    build: .
+    image: asterism:latest
+    container_name: asterism
+    ports:
+      - "20820:8080"
+    env_file: .env
+    volumes:
+      - ./logs:/app/logs
+      - ./sessions:/app/sessions
+    restart: unless-stopped
