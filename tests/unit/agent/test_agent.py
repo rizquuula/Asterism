@@ -71,7 +71,7 @@ def test_agent_initialization_defaults(mock_llm, mock_mcp_executor):
     assert agent.llm is mock_llm
     assert agent.mcp_executor is mock_mcp_executor
     assert agent.db_path is None  # Stateless mode by default
-    assert agent.workspace_root == "./workspace"
+    assert agent.workspace_root == "."
     assert agent._full_graph is None
     assert agent._streaming_graph is None
     assert agent._checkpointer is None
