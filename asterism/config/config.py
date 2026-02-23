@@ -313,6 +313,35 @@ class Config:
         servers_file = self.data.mcp.servers_file
         return servers_file
 
+    def update_value(self, key_path: str, value: Any) -> None:
+        """Update a config value using dot notation and save to file.
+
+        Args:
+            key_path: Dot-separated path (e.g., "api.port", "models.default")
+            value: New value to set
+
+        Raises:
+            ValueError: If key_path is invalid
+        """
+        keys = key_path.split(".")
+
+        current = self._raw_config
+        for key in keys[:-1]:
+            if key not in current:
+                raise ValueError(f"Key '{key}' not found in path '{key_path}'")
+            current = current[key]
+
+        final_key = keys[-1]
+        if final_key not in current:
+            raise ValueError(f"Key '{final_key}' not found in config")
+
+        current[final_key] = value
+
+        with open(self._config_file, "w", encoding="utf-8") as f:
+            yaml.dump(self._raw_config, f, default_flow_style=False, sort_keys=False)
+
+        self._load()
+
     def reload(self) -> None:
         """Reload the configuration from disk.
 

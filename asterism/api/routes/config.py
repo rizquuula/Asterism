@@ -1,8 +1,8 @@
-"""Config read endpoint."""
+"""Config read and update endpoints."""
 
-from typing import Annotated
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from asterism.config import Config
@@ -50,6 +50,17 @@ class ConfigResponse(BaseModel):
     mcp: MCPInfo
 
 
+class ConfigUpdateRequest(BaseModel):
+    key: str
+    value: Any
+
+
+class ConfigUpdateResponse(BaseModel):
+    success: bool
+    message: str
+    key: str
+
+
 @router.get("/config", response_model=ConfigResponse)
 async def get_config_endpoint(
     config: Annotated[Config, Depends(get_config)],
@@ -92,3 +103,24 @@ async def get_config_endpoint(
             timeout=data.mcp.timeout,
         ),
     )
+
+
+@router.put("/config", response_model=ConfigUpdateResponse)
+async def update_config_endpoint(
+    request: ConfigUpdateRequest,
+    config: Annotated[Config, Depends(get_config)],
+) -> ConfigUpdateResponse:
+    """Update a configuration value.
+
+    Use dot notation for nested keys (e.g., "api.port", "models.default").
+    Changes are persisted to config.yaml.
+    """
+    try:
+        config.update_value(request.key, request.value)
+        return ConfigUpdateResponse(
+            success=True,
+            message="Configuration updated successfully",
+            key=request.key,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
