@@ -342,6 +342,14 @@ class Config:
 
         self._load()
 
+    def get_schema(self) -> dict[str, Any]:
+        """Get JSON schema for configuration.
+
+        Returns:
+            dict: JSON schema generated from ConfigData model
+        """
+        return ConfigData.model_json_schema()
+
     def reload(self) -> None:
         """Reload the configuration from disk.
 

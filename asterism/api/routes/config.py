@@ -105,6 +105,14 @@ async def get_config_endpoint(
     )
 
 
+@router.get("/config/schema")
+async def get_config_schema(
+    config: Annotated[Config, Depends(get_config)],
+) -> dict[str, Any]:
+    """Return JSON schema for configuration."""
+    return config.get_schema()
+
+
 @router.put("/config", response_model=ConfigUpdateResponse)
 async def update_config_endpoint(
     request: ConfigUpdateRequest,
