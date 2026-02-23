@@ -29,8 +29,10 @@ def validate_and_enrich_plan(plan: Plan) -> Plan:
     if not plan:
         raise PlanningError("Plan is empty")
 
+    # Allow empty tasks for simple queries that don't need tools
+    # The planner will return tasks: [] for greetings, simple questions, etc.
     if not plan.tasks:
-        raise PlanningError("Plan has no tasks")
+        return plan
 
     # Ensure all tasks have IDs
     for i, task in enumerate(plan.tasks):

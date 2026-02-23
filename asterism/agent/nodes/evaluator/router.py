@@ -48,6 +48,9 @@ def can_skip_evaluation(state: AgentState) -> bool:
     For linear plans where all tasks have completed successfully,
     we can skip the evaluator LLM call and go directly to finalizer.
 
+    Also returns True for empty plans (no tasks) - simple queries
+    that don't need tools.
+
     Args:
         state: Current agent state.
 
@@ -57,6 +60,10 @@ def can_skip_evaluation(state: AgentState) -> bool:
     plan = state.get("plan")
     if not plan:
         return False
+
+    # Skip evaluation for empty plans (simple queries - no tools needed)
+    if not plan.tasks:
+        return True
 
     # Only skip for linear plans
     if not is_linear_plan(plan):
@@ -104,6 +111,10 @@ def _determine_fallback_route(state: AgentState) -> RouteTarget:
     plan = state.get("plan")
     if not plan:
         return RouteTarget.PLANNER
+
+    # If plan has no tasks (empty plan for simple queries), go directly to finalizer
+    if not plan.tasks:
+        return RouteTarget.FINALIZER
 
     current_index = state.get("current_task_index", 0)
     total_tasks = len(plan.tasks)

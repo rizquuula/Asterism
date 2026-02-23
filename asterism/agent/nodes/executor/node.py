@@ -32,6 +32,9 @@ def executor_node(
     batch execute all remaining tasks in a single pass, reducing the number
     of evaluator calls needed.
 
+    If the plan has no tasks (empty tasks array), skip execution entirely
+    and return state as-is. This handles simple queries that don't need tools.
+
     Args:
         llm: The LLM provider for LLM-only tasks.
         mcp_executor: The MCP executor for tool calls.
@@ -41,6 +44,11 @@ def executor_node(
         Updated state with execution result(s).
     """
     plan = state.get("plan")
+
+    # Skip execution if plan has no tasks (simple query - no tools needed)
+    if not plan or not plan.tasks:
+        logger.info("[executor] No tasks to execute (empty plan), skipping executor")
+        return state
 
     # Check if this is a linear plan that can be batch executed
     if is_linear_plan(plan):
@@ -162,6 +170,9 @@ def executor_node_with_parallel(
     to be executed in parallel. It returns a list of Send objects, each
     targeting the parallel_execute_task node with the task data.
 
+    If the plan has no tasks (empty tasks array), skip execution entirely
+    and return state as-is. This handles simple queries that don't need tools.
+
     Args:
         llm: The LLM provider for LLM-only tasks.
         mcp_executor: The MCP executor for tool calls.
@@ -171,7 +182,10 @@ def executor_node_with_parallel(
         List of Send objects for parallel execution, or single task update.
     """
     plan = state.get("plan")
-    if not plan:
+
+    # Skip execution if plan has no tasks (simple query - no tools needed)
+    if not plan or not plan.tasks:
+        logger.info("[executor] No tasks to execute (empty plan), skipping parallel executor")
         return state
 
     # Get completed task IDs

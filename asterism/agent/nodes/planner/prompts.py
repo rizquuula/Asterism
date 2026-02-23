@@ -62,6 +62,10 @@ Guidelines:
 - Include verification tasks if needed
 - Make sure to use full path for file operation
 
+NO TOOLS NEEDED:
+- If the user's request can be answered directly without any tool calls (e.g., greetings, simple questions, general knowledge), return an empty tasks array: "tasks": []
+- When returning empty tasks, provide a brief reasoning explaining why no tools are needed
+
 WORKSPACE CONTEXT:
 - The workspace root is the current working directory
 - Files like PERSONALITY.md, AGENT.md, SOUL.md are typically in the workspace root ("./")
