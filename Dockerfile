@@ -6,7 +6,6 @@ RUN pip install --no-cache-dir uv
 
 COPY pyproject.toml uv.lock README.md ./
 COPY asterism/ asterism/
-COPY workspace/ workspace/
 
 RUN uv sync --frozen --no-dev
 

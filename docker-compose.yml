@@ -9,4 +9,5 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./sessions:/app/sessions
+      - ./workspace:/app/workspace
     restart: unless-stopped
