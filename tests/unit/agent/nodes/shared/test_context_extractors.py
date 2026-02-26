@@ -17,8 +17,31 @@ from asterism.agent.nodes.shared.context_extractors import (
 from asterism.agent.state import AgentState
 
 
-def test_get_user_request_first_human_message():
-    """Test extracting user request from first human message."""
+def test_get_user_request_last_human_message():
+    """Test extracting user request from last (most recent) human message."""
+    state: AgentState = {
+        "session_id": "test",
+        "trace_id": "trace_123",
+        "messages": [
+            HumanMessage(content="First message"),
+            AIMessage(content="AI response"),
+            HumanMessage(content="Most recent request"),
+        ],
+        "plan": None,
+        "current_task_index": 0,
+        "execution_results": [],
+        "evaluation_result": None,
+        "final_response": None,
+        "error": None,
+        "llm_usage": [],
+    }
+
+    request = get_user_request(state)
+    assert request == "Most recent request"
+
+
+def test_get_user_request_single_human_message():
+    """Test extracting user request when only one human message exists."""
     state: AgentState = {
         "session_id": "test",
         "trace_id": "trace_123",

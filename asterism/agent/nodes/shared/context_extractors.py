@@ -11,18 +11,19 @@ from asterism.agent.state import AgentState
 
 
 def get_user_request(state: AgentState) -> str:
-    """Extract the original user request from state messages.
+    """Extract the most recent user request from state messages.
 
-    Finds the first human message in the conversation history.
+    Finds the last human message in the conversation history,
+    which represents the current request being processed.
 
     Args:
         state: Current agent state.
 
     Returns:
-        The user's original request or a default message.
+        The user's most recent request or a default message.
     """
     messages = state.get("messages", [])
-    for msg in messages:
+    for msg in reversed(messages):
         if isinstance(msg, HumanMessage):
             return msg.content
     return "No user request found"

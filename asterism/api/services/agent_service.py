@@ -49,8 +49,7 @@ class AgentService:
         db_path = self.config.data.api.db_path
         if not db_path:
             logger.warning(
-                "[agent_service] Server-side history enabled but api.db_path is empty; "
-                "skipping history store"
+                "[agent_service] Server-side history enabled but api.db_path is empty; skipping history store"
             )
             return None
 

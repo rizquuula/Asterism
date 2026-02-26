@@ -1,6 +1,6 @@
 """Response building logic for the finalizer node."""
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from asterism.agent.models import AgentResponse, LLMUsage
 from asterism.agent.nodes.finalizer.prompts import FINALIZER_SYSTEM_PROMPT
@@ -53,6 +53,9 @@ def build_success_response(
     identity_context = load_identity_context(workspace_root)
     system_prompt = f"{identity_context}\n\n{FINALIZER_SYSTEM_PROMPT}" if identity_context else FINALIZER_SYSTEM_PROMPT
 
+    # Extract conversation history for multi-turn context
+    conversation_history = _extract_conversation_history(state)
+
     user_prompt = f"""Original user request: {user_request}
 
 Execution results:
@@ -60,10 +63,11 @@ Execution results:
 
 Create a response for the user."""
 
-    messages = [
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=user_prompt),
-    ]
+    messages = [SystemMessage(content=system_prompt)]
+    # Include conversation history for multi-turn context
+    messages.extend(conversation_history)
+    # Add the current response generation instruction
+    messages.append(HumanMessage(content=user_prompt))
 
     try:
         result = caller.call_text(messages, "generating final response")
@@ -87,6 +91,19 @@ Create a response for the user."""
         )
 
         return response, None
+
+
+def _extract_conversation_history(state: AgentState) -> list:
+    """Extract conversation history from state, excluding system messages.
+
+    Returns all user and assistant messages to provide multi-turn context.
+    """
+    messages = state.get("messages", [])
+    history = []
+    for msg in messages:
+        if isinstance(msg, (HumanMessage, AIMessage)):
+            history.append(msg)
+    return history
 
 
 def format_results_summary(state: AgentState) -> str:

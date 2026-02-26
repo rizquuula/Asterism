@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from asterism.agent.state import AgentState
 from asterism.agent.utils import get_workspace_tree_context, load_identity_context
@@ -45,6 +45,7 @@ def build_planner_context(
         PlannerContext with all necessary information.
     """
     user_message = _extract_user_message(state)
+    conversation_history = _extract_conversation_history(state)
     execution_context = _build_execution_context(state)
     tools_context = _fetch_tools_context(mcp_executor)
     workspace_context = get_workspace_tree_context(workspace_root)
@@ -52,6 +53,7 @@ def build_planner_context(
 
     messages = _build_messages(
         user_message=user_message,
+        conversation_history=conversation_history,
         execution_context=execution_context,
         tools_context=tools_context,
         workspace_context=workspace_context,
@@ -73,6 +75,20 @@ def _extract_user_message(state: AgentState) -> str:
         if isinstance(msg, HumanMessage):
             return msg.content
     return ""
+
+
+def _extract_conversation_history(state: AgentState) -> list:
+    """Extract conversation history from state, excluding system messages.
+
+    Returns all user and assistant messages to provide multi-turn context.
+    """
+    messages = state.get("messages", [])
+
+    history = []
+    for msg in messages:
+        if isinstance(msg, (HumanMessage, AIMessage)):
+            history.append(msg)
+    return history
 
 
 def _build_execution_context(state: AgentState) -> str:
@@ -101,6 +117,7 @@ def _fetch_tools_context(mcp_executor: MCPExecutor) -> str:
 
 def _build_messages(
     user_message: str,
+    conversation_history: list,
     execution_context: str,
     tools_context: str,
     workspace_context: str,
@@ -110,6 +127,7 @@ def _build_messages(
 
     Args:
         user_message: The user's request.
+        conversation_history: Prior user/assistant messages for context.
         execution_context: Previous execution results (if any).
         tools_context: Formatted tool descriptions.
         workspace_context: Workspace tree info.
@@ -128,10 +146,13 @@ Create a plan to accomplish this request using the available tools.
 
 JSON OUTPUT:"""
 
-    return [
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=user_prompt),
-    ]
+    messages = [SystemMessage(content=system_prompt)]
+    # Include conversation history for multi-turn context
+    messages.extend(conversation_history)
+    # Add the current planning instruction as a user message
+    messages.append(HumanMessage(content=user_prompt))
+
+    return messages
 
 
 def _build_system_prompt(tools_context: str, workspace_context: str, identity_context: str = "") -> str:

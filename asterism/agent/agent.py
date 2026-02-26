@@ -6,7 +6,7 @@ import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.sqlite import SqliteSaver
 
@@ -35,6 +35,19 @@ def _initialize_state(session_id: str, messages: list[BaseMessage], workspace_ro
         "error": None,
         "llm_usage": [],
     }
+
+
+def _extract_conversation_history(state: AgentState) -> list:
+    """Extract conversation history from state, excluding system messages.
+
+    Returns all user and assistant messages to provide multi-turn context.
+    """
+    messages = state.get("messages", [])
+    history = []
+    for msg in messages:
+        if isinstance(msg, (HumanMessage, AIMessage)):
+            history.append(msg)
+    return history
 
 
 class Agent:
@@ -304,10 +317,15 @@ Create a response for the user."""
         system_prompt = (
             f"{identity_context}\n\n{FINALIZER_SYSTEM_PROMPT}" if identity_context else FINALIZER_SYSTEM_PROMPT
         )
-        finalizer_messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt),
-        ]
+
+        # Extract conversation history for multi-turn context
+        conversation_history = _extract_conversation_history(final_state)
+
+        finalizer_messages = [SystemMessage(content=system_prompt)]
+        # Include conversation history for multi-turn context
+        finalizer_messages.extend(conversation_history)
+        # Add the current response generation instruction
+        finalizer_messages.append(HumanMessage(content=user_prompt))
 
         # Stream tokens from the LLM
         full_response = ""

@@ -54,10 +54,7 @@ class SessionHistoryStore:
                 (session_id,),
             ).fetchall()
 
-        return [
-            ChatMessage(role=row[0], content=row[1], name=row[2], tool_call_id=row[3])
-            for row in rows
-        ]
+        return [ChatMessage(role=row[0], content=row[1], name=row[2], tool_call_id=row[3]) for row in rows]
 
     def replace_messages(self, session_id: str, messages: list[ChatMessage]) -> None:
         with self._connect() as conn:
