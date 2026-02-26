@@ -1,5 +1,6 @@
 """Main Agent implementation using LangGraph."""
 
+import logging
 import sqlite3
 import uuid
 from collections.abc import AsyncGenerator
@@ -16,6 +17,8 @@ from asterism.agent.nodes.shared import build_execution_trace, get_user_request
 from asterism.agent.state import AgentState
 from asterism.llm.providers import BaseLLMProvider
 from asterism.mcp.executor import MCPExecutor
+
+logger = logging.getLogger(__name__)
 
 
 def _initialize_state(session_id: str, messages: list[BaseMessage], workspace_root: str = "./workspace") -> AgentState:
@@ -135,6 +138,11 @@ class Agent:
             self.workspace_root,
         )
 
+        logger.info(
+            f"[agent] Invoking graph with session_id={session_id}, "
+            f"messages_count={len(messages)}, checkpointer_enabled={self.db_path is not None}"
+        )
+
         # Run the graph
         try:
             final_state = graph.invoke(
@@ -221,6 +229,11 @@ class Agent:
 
         # Get initial state
         initial_state = _initialize_state(session_id, messages, self.workspace_root)
+
+        logger.info(
+            f"[agent] Streaming graph with session_id={session_id}, "
+            f"messages_count={len(messages)}, checkpointer_enabled={self.db_path is not None}"
+        )
 
         # Run the graph up to finalization (non-streaming for planning/execution)
         try:

@@ -7,7 +7,7 @@ install:
 	uv sync
 
 deploy:
-	docker compose up --build -d
+	docker compose up --build --force-recreate -d
 
 deploy-down:
 	docker compose down

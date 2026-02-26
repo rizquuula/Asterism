@@ -33,7 +33,7 @@ def test_invoke_with_parameters(openai_provider: BaseLLMProvider):
 def test_invoke_error_handling():
     """Test error handling in invoke method."""
     # Create provider with invalid API key
-    provider = OpenAIProvider(model="gpt-3.5-turbo", api_key="invalid-key")
+    provider = OpenAIProvider(provider_name="openai", model="gpt-3.5-turbo", api_key="invalid-key")
 
     with pytest.raises(RuntimeError, match="OpenAI API error"):
         provider.invoke("Test prompt")
@@ -92,7 +92,7 @@ def test_invoke_structured_complex_schema(
 def test_invoke_structured_error_handling():
     """Test error handling in structured invoke method."""
     # Create provider with invalid API key
-    provider = OpenAIProvider(model="gpt-3.5-turbo", api_key="invalid-key")
+    provider = OpenAIProvider(provider_name="openai", model="gpt-3.5-turbo", api_key="invalid-key")
 
     from pydantic import BaseModel
 

@@ -1,0 +1,198 @@
+# MkDocs Configuration for Asterism Documentation
+# https://www.mkdocs.org
+
+site_name: Asterism
+site_description: AI Agent Framework with LangGraph and MCP
+site_author: Asterism Team
+site_url: https://rizquuula.github.io/Asterism
+
+# Repository links
+repo_name: Asterism
+repo_url: https://github.com/rizquuula/Asterism
+edit_url: "https://github.com/rizquuula/Asterism/edit/main/docs/"
+
+# Copyright
+copyright: "Copyright &copy; 2024 Asterism"
+
+# Configuration for MkDocs Material theme
+theme:
+  name: material
+  language: en
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+  # Features
+  features:
+    - navigation.instant  # Instant navigation
+    - navigation.tracking  # Update URL while scrolling
+    - navigation.tabs  # Top-level navigation tabs
+    - navigation.sections  # Expandable sections
+    - navigation.expand  # Expand all sections by default
+    - navigation.top  # Back to top button
+    - search.highlight  # Highlight search results
+    - search.share  # Share search results
+    - search.suggest  # Suggest search queries
+    - toc.follow  # Table of contents follows scroll
+    - toc.integrated  # Integrated table of contents
+
+  # Custom fonts
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  # Icon overrides
+  icon:
+    repo: fontawesome/brands/github
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-\.]+'
+      prebuild_index: true
+  - mermaid2:
+      version: "0.17.1"
+
+# Markdown extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - codehilite:
+      guess_lang: false
+  - def_list
+  - footnotes
+  - meta
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      smart_dollar: false
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+      emoji_index: !!python/name:pymdownx.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_classes: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shortener: true
+      repo_url_shorthand: true
+      social_uri_shorthand: true
+  - pymdownx.mark
+  - pymdownx.pathconverter
+  - pymdownx.progressbar
+  - pymdownx.saneheaders
+  - pymdownx.smartsymbols
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Extra CSS
+extra_css:
+  - stylesheets/extra.css
+
+# Extra JavaScript
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml.js
+
+# Google Analytics
+analytics:
+  provider: google
+  property: # Add your Google Analytics ID
+
+# External links
+external_links:
+  - name: LangGraph
+    url: https://langchain-ai.github.io/langgraph/
+  - name: MCP Specification
+    url: https://spec.modelcontextprotocol.io/
+  - name: FastAPI
+    url: https://fastapi.tiangolo.com/
+  - name: uv
+    url: https://github.com/astral-sh/uv
+
+# Page tree
+nav:
+  - Home: index.md
+  - Getting Started:
+      - getting-started/installation.md
+      - getting-started/quick-start.md
+      - getting-started/docker.md
+  - Configuration:
+      - configuration/config-yaml.md
+      - configuration/environment.md
+      - configuration/providers.md
+  - API Reference:
+      - api-reference/overview.md
+      - api-reference/chat-completions.md
+      - api-reference/models.md
+      - api-reference/health.md
+      - api-reference/config.md
+      - api-reference/openapi.md
+  - Architecture:
+      - architecture/overview.md
+      - architecture/workflow.md
+      - architecture/nodes/planner.md
+      - architecture/nodes/executor.md
+      - architecture/nodes/evaluator.md
+      - architecture/nodes/finalizer.md
+      - architecture/state.md
+  - MCP Integration:
+      - mcp/overview.md
+      - mcp/configuration.md
+      - mcp/transports.md
+      - mcp/custom-servers.md
+  - Workspace:
+      - workspace/overview.md
+      - workspace/soul.md
+      - workspace/agent.md
+      - workspace/personality.md
+  - Development:
+      - development/code-style.md
+      - development/testing.md
+      - development/contributing.md
+
+# Footer
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/rizquuula/Asterism
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/asterism/
+
+# Validation
+validation:
+  absolute_links: ignore
+  unrecognized_links: ignore
