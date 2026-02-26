@@ -28,7 +28,7 @@ class ChatCompletionRequest(BaseModel):
     stop: list[str] | None = None
 
     # Asterism-specific extensions
-    session_id: str | None = Field(default=None, description="Optional session ID for tracing")
+    session_id: str = Field(..., description="Session ID for agent state persistence")
 
 
 class ChatCompletionStreamChoice(BaseModel):

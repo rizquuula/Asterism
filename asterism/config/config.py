@@ -92,6 +92,10 @@ class APIConfig(BaseModel):
         default="sessions/data.db",
         description="Path to SQLite checkpoint database (None to disable)",
     )
+    use_server_side_history: bool = Field(
+        default=False,
+        description="Enable server-side chat history reconstruction by session_id",
+    )
 
 
 class ModelProvider(BaseModel):

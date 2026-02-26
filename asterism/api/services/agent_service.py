@@ -10,7 +10,8 @@ from asterism.config import Config
 from asterism.llm import LLMProviderRouter
 from asterism.mcp.executor import MCPExecutor
 
-from ..models import ChatCompletionRequest
+from ..models import ChatCompletionRequest, ChatMessage
+from .session_history_store import SessionHistoryStore
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,22 @@ class AgentService:
         self.llm_router = llm_router
         self.mcp_executor = mcp_executor
         self.config = config
+        self._history_store = self._build_history_store()
+
+    def _build_history_store(self) -> SessionHistoryStore | None:
+        """Create history store when enabled and supported by config."""
+        if not self.config.data.api.use_server_side_history:
+            return None
+
+        db_path = self.config.data.api.db_path
+        if not db_path:
+            logger.warning(
+                "[agent_service] Server-side history enabled but api.db_path is empty; "
+                "skipping history store"
+            )
+            return None
+
+        return SessionHistoryStore(db_path)
 
     async def run_completion(
         self,
@@ -62,8 +79,11 @@ class AgentService:
         )
 
         try:
+            # Merge with server-side history if enabled
+            effective_messages = self._build_effective_messages(request.messages, request_id)
+
             # Convert OpenAI format messages to LangChain messages
-            messages = self._convert_messages(request.messages)
+            messages = self._convert_messages(effective_messages)
 
             # Set model if specified in request
             if request.model:
@@ -75,6 +95,8 @@ class AgentService:
                 session_id=request_id,
                 messages=messages,
             )
+
+            self._persist_assistant_response(request_id, effective_messages, result.get("message", ""))
 
             return result
 
@@ -104,14 +126,20 @@ class AgentService:
         )
 
         try:
+            # Merge with server-side history if enabled
+            effective_messages = self._build_effective_messages(request.messages, request_id)
+
             # Convert OpenAI format messages to LangChain messages
-            messages = self._convert_messages(request.messages)
+            messages = self._convert_messages(effective_messages)
 
             # Stream agent response with full conversation context
             async for token, metadata in agent.astream(
                 session_id=request_id,
                 messages=messages,
             ):
+                if metadata is not None:
+                    final_message = metadata.get("message", "") if isinstance(metadata, dict) else ""
+                    self._persist_assistant_response(request_id, effective_messages, final_message)
                 yield token, metadata
 
         finally:
@@ -144,6 +172,74 @@ class AgentService:
                     )
                 )
         return converted
+
+    def _build_effective_messages(self, incoming_messages: list, session_id: str) -> list:
+        """Build effective conversation by merging restored history with incoming messages."""
+        incoming_count = len(incoming_messages)
+
+        if self._history_store is None:
+            logger.info(
+                "[agent_service] History mode disabled or unavailable: "
+                f"incoming_messages_count={incoming_count}, restored_history_count=0, "
+                f"effective_messages_count={incoming_count}"
+            )
+            return incoming_messages
+
+        restored_messages = self._history_store.load_messages(session_id)
+        overlap = self._compute_overlap(restored_messages, incoming_messages)
+        effective_messages = restored_messages + incoming_messages[overlap:]
+
+        logger.info(
+            "[agent_service] Built effective history: "
+            f"incoming_messages_count={incoming_count}, restored_history_count={len(restored_messages)}, "
+            f"effective_messages_count={len(effective_messages)}, overlap_count={overlap}"
+        )
+        return effective_messages
+
+    def _persist_assistant_response(self, session_id: str, effective_messages: list, assistant_message: str) -> None:
+        """Persist updated session history including assistant response."""
+        if self._history_store is None:
+            return
+
+        new_history = [*effective_messages]
+        if assistant_message:
+            new_history.append(
+                ChatMessage(
+                    role="assistant",
+                    content=assistant_message,
+                )
+            )
+        self._history_store.replace_messages(session_id, new_history)
+
+    def _compute_overlap(self, restored_messages: list, incoming_messages: list) -> int:
+        """Compute longest suffix/prefix overlap between restored and incoming message lists."""
+        max_overlap = min(len(restored_messages), len(incoming_messages))
+        for overlap in range(max_overlap, 0, -1):
+            if self._messages_equal(restored_messages[-overlap:], incoming_messages[:overlap]):
+                return overlap
+        return 0
+
+    def _messages_equal(self, left: list, right: list) -> bool:
+        if len(left) != len(right):
+            return False
+
+        for lmsg, rmsg in zip(left, right, strict=False):
+            if not self._message_key_equal(lmsg, rmsg):
+                return False
+        return True
+
+    def _message_key_equal(self, left, right) -> bool:
+        return (
+            left.role,
+            left.content,
+            left.name,
+            left.tool_call_id,
+        ) == (
+            right.role,
+            right.content,
+            right.name,
+            right.tool_call_id,
+        )
 
     def _extract_last_user_message(self, messages: list) -> str:
         """Extract the last user message from the conversation.

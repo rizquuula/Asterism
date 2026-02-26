@@ -1,7 +1,6 @@
 """Chat completions endpoint."""
 
 import time
-import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -51,13 +50,11 @@ async def chat_completions(
     Returns:
         Either a ChatCompletionResponse (non-streaming) or StreamingResponse (streaming)
     """
-    request_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
-
     if request.stream:
         # SSE streaming response
         return StreamingResponse(
             stream_chat_completion(
-                request_id=request_id,
+                request_id=request.session_id,
                 model=request.model,
                 agent_service=agent_service,
                 request=request,
@@ -72,7 +69,7 @@ async def chat_completions(
     # Non-streaming response
     result = await agent_service.run_completion(
         request=request,
-        request_id=request_id,
+        request_id=request.session_id,
     )
 
     # Extract usage from result
@@ -84,7 +81,7 @@ async def chat_completions(
     )
 
     return ChatCompletionResponse(
-        id=request_id,
+        id=request.session_id,
         created=int(time.time()),
         model=request.model,
         choices=[
