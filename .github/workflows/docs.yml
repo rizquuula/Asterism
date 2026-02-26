@@ -18,6 +18,10 @@ jobs:
           python-version: "3.11"
       - name: Install docs dependencies
         run: |
-          pip install mkdocs mkdocs-material mkdocs-mermaid2-plugin pymdown-extensions
+          pip install \
+            mkdocs==1.6.1 \
+            mkdocs-material==9.5.39 \
+            mkdocs-mermaid2-plugin==1.2.1 \
+            pymdown-extensions==10.8.1
       - name: Deploy docs to GitHub Pages
         run: mkdocs gh-deploy --force

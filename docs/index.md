@@ -1,5 +1,4 @@
 ---
-template: home.html
 title: Home
 description: A high-performance AI agent framework built with LangGraph and MCP
 ---

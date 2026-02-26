@@ -9,7 +9,7 @@ site_url: https://rizquuula.github.io/Asterism
 # Repository links
 repo_name: Asterism
 repo_url: https://github.com/rizquuula/Asterism
-edit_url: "https://github.com/rizquuula/Asterism/edit/main/docs/"
+edit_uri: edit/main/docs/
 
 # Copyright
 copyright: "Copyright &copy; 2024 Asterism"
@@ -64,9 +64,7 @@ theme:
 plugins:
   - search:
       separator: '[\s\-\.]+'
-      prebuild_index: true
-  - mermaid2:
-      version: "0.17.1"
+  - mermaid2
 
 # Markdown extensions
 markdown_extensions:
@@ -94,13 +92,12 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
-      pygments_lang_classes: true
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.keys
   - pymdownx.magiclink:
       repo_url_shortener: true
       repo_url_shorthand: true
-      social_uri_shorthand: true
   - pymdownx.mark
   - pymdownx.pathconverter
   - pymdownx.progressbar
@@ -126,22 +123,6 @@ extra_css:
 extra_javascript:
   - javascripts/mathjax.js
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml.js
-
-# Google Analytics
-analytics:
-  provider: google
-  property: # Add your Google Analytics ID
-
-# External links
-external_links:
-  - name: LangGraph
-    url: https://langchain-ai.github.io/langgraph/
-  - name: MCP Specification
-    url: https://spec.modelcontextprotocol.io/
-  - name: FastAPI
-    url: https://fastapi.tiangolo.com/
-  - name: uv
-    url: https://github.com/astral-sh/uv
 
 # Page tree
 nav:
@@ -186,6 +167,9 @@ nav:
 
 # Footer
 extra:
+  analytics:
+    provider: google
+    property: # Add your Google Analytics ID
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/rizquuula/Asterism
